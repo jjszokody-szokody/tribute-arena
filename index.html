@@ -30,15 +30,17 @@ button.big{font-size:20px;padding:12px 28px;margin:6px;border:0;border-radius:10
 #btns div{width:62px;height:62px;border-radius:50%;background:#0006;border:2px solid #fff7;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:bold}
 #btns div:active{background:#f5b94288}
 #danger{position:fixed;inset:0;pointer-events:none;z-index:3;box-shadow:inset 0 0 80px #f30;opacity:0;transition:opacity .3s}
+#qual button{font-size:13px;padding:5px 10px;margin:2px;border-radius:6px;border:1px solid #886;background:#2a221a;color:#fff}#qual button.on{background:#f5b942;color:#211}
 #final{font-size:clamp(20px,5vw,34px);margin:10px}
 </style>
-<script type="importmap">{"imports":{"three":"https://unpkg.com/three@0.160.0/build/three.module.js"}}</script>
+<script type="importmap">{"imports":{"three":"https://unpkg.com/three@0.160.0/build/three.module.js","three/addons/":"https://unpkg.com/three@0.160.0/examples/jsm/"}}</script>
 </head><body>
 <div id="select" class="screen">
  <h1>TRIBUTE ARENA</h1><div style="font-size:13px;opacity:.8">Choose your tribute. Last one standing wins.</div>
  <canvas id="preview"></canvas>
  <div id="chars"></div>
- <button class="big" id="start">Enter the Arena</button>
+ <div id="qual" style="margin:6px 0;font-size:13px">Graphics: <button data-q="auto">Auto</button><button data-q="low">Low</button><button data-q="medium">Medium</button><button data-q="high">High</button></div>
+ <button class="big" id="start" disabled>Loading…</button>
  <div style="font-size:11px;opacity:.6">Desktop: WASD move · mouse look · click attack · Space jump · E pick up/use · V camera</div>
 </div>
 <div id="end" class="screen hidden"><h1 id="endTitle">YOU DIED</h1><div id="final"></div>
