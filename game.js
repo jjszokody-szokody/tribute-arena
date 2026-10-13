@@ -314,7 +314,7 @@ function updateEnt(e,dt){
  if(e.isPlayer){let mx=(keys.KeyD?1:0)-(keys.KeyA?1:0)+moveX,mz=(keys.KeyW||keys.ArrowUp?1:0)-(keys.KeyS||keys.ArrowDown?1:0)+moveY;
   if(keys.ArrowLeft)yaw+=dt*2;if(keys.ArrowRight)yaw-=dt*2;const l=Math.hypot(mx,mz);if(l>1){mx/=l;mz/=l;}
   e.dir=yaw+Math.PI;const fx=Math.sin(e.dir),fz=Math.cos(e.dir),rx=-fz,rz=fx;
-  if(l>.05)move(e,fx*mz-rx*mx,fz*mz-rz*mx,dt);if(atkHeld)attack(e);}
+  if(l>.05)move(e,fx*mz+rx*mx,fz*mz+rz*mx,dt);if(atkHeld)attack(e);}
  else{e.think-=dt;if(e.think<=0){e.think=rnd(.3,.6);aiThink(e);}
   let tx=e.tx,tz=e.tz;if(e.target){tx=e.target.x;tz=e.target.z;}
   const dx=tx-e.x,dz=tz-e.z,d=Math.hypot(dx,dz);
@@ -362,4 +362,4 @@ function loop(){requestAnimationFrame(loop);const dt=Math.min(clock.getDelta(),.
   if(running&&qSetting==='auto'&&fpsNow<28&&pixelRatio>.7){pixelRatio=Math.max(.7,pixelRatio-.2);renderer.setPixelRatio(pixelRatio);if(composer){composer=null;}}
   else if(running&&qSetting==='auto'&&fpsNow>55&&pixelRatio<Math.min(devicePixelRatio,QL.pr)){pixelRatio=Math.min(Math.min(devicePixelRatio,QL.pr),pixelRatio+.1);renderer.setPixelRatio(pixelRatio);}}}
 loop();
-window.__game={tp:(x,z,yw)=>{player.x=x;player.z=z;yaw=yw;},get player(){return player},get ents(){return ents},setCam:m=>{camMode=m;setCam();},get fps(){return fpsLog},quality:qName,get pr(){return pixelRatio},swing:()=>{player.swing=.3;}};
+window.__game={setMove:(x,y)=>{moveX=x;moveY=y;},camDirs:()=>{const f=new THREE.Vector3();camera.getWorldDirection(f);f.y=0;f.normalize();return {f:[f.x,f.z],r:[-f.z,f.x]};},tp:(x,z,yw)=>{player.x=x;player.z=z;yaw=yw;},get player(){return player},get ents(){return ents},setCam:m=>{camMode=m;setCam();},get fps(){return fpsLog},quality:qName,get pr(){return pixelRatio},swing:()=>{player.swing=.3;}};
