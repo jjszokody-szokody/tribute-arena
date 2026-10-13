@@ -141,13 +141,21 @@ addEventListener('keyup',e=>keys[e.code]=false);
 const cv=renderer.domElement;
 cv.addEventListener('mousedown',()=>{if(!running||isTouch)return;if(document.pointerLockElement!==cv){cv.requestPointerLock?.();$('hint').textContent='';}else attack(player);});
 addEventListener('mousemove',e=>{if(document.pointerLockElement===cv){yaw-=e.movementX*.0025;pitch=THREE.MathUtils.clamp(pitch-e.movementY*.0025,-1.3,1.3);}});
-// touch
-const joy=$('joy'),knob=$('knob');let joyId=null,joyO=null,lookId=null,lookL=null;
-const tl=$('touch');
-tl.addEventListener('touchstart',e=>{e.preventDefault();audio();for(const t of e.changedTouches){if(t.clientX<innerWidth/2&&joyId===null){joyId=t.identifier;joyO={x:t.clientX,y:t.clientY};joy.style.display='block';joy.style.left=t.clientX-55+'px';joy.style.top=t.clientY-55+'px';}else if(lookId===null){lookId=t.identifier;lookL={x:t.clientX,y:t.clientY};}}},{passive:false});
-tl.addEventListener('touchmove',e=>{e.preventDefault();for(const t of e.changedTouches){if(t.identifier===joyId){let dx=t.clientX-joyO.x,dy=t.clientY-joyO.y;const l=Math.hypot(dx,dy),m=45;if(l>m){dx*=m/l;dy*=m/l;}knob.style.left=30+dx+'px';knob.style.top=30+dy+'px';moveX=dx/m;moveY=-dy/m;}else if(t.identifier===lookId){yaw-=(t.clientX-lookL.x)*.006;pitch=THREE.MathUtils.clamp(pitch-(t.clientY-lookL.y)*.006,-1.3,1.3);lookL={x:t.clientX,y:t.clientY};}}},{passive:false});
-const tend=e=>{for(const t of e.changedTouches){if(t.identifier===joyId){joyId=null;moveX=moveY=0;joy.style.display='none';knob.style.left=knob.style.top='30px';}if(t.identifier===lookId)lookId=null;}};
-tl.addEventListener('touchend',tend);tl.addEventListener('touchcancel',tend);
+// touch: two fixed joysticks, multitouch by identifier
+let lookX=0,lookY=0;
+function makeJoy(el,cb){const knob=el.querySelector('.knob');let id=null;const MAX=46;
+ const set=(t)=>{const r=el.getBoundingClientRect();let dx=t.clientX-(r.left+r.width/2),dy=t.clientY-(r.top+r.height/2);const l=Math.hypot(dx,dy);if(l>MAX){dx*=MAX/l;dy*=MAX/l;}knob.style.transform=`translate(${dx}px,${dy}px)`;cb(dx/MAX,dy/MAX);};
+ el.addEventListener('touchstart',e=>{e.preventDefault();audio();if(id!==null)return;const t=e.changedTouches[0];id=t.identifier;set(t);},{passive:false});
+ el.addEventListener('touchmove',e=>{e.preventDefault();for(const t of e.changedTouches)if(t.identifier===id)set(t);},{passive:false});
+ const end=e=>{for(const t of e.changedTouches)if(t.identifier===id){id=null;knob.style.transform='';cb(0,0);}};
+ el.addEventListener('touchend',end);el.addEventListener('touchcancel',end);}
+makeJoy($('joyL'),(x,y)=>{moveX=x;moveY=-y;});
+makeJoy($('joyR'),(x,y)=>{lookX=x;lookY=y;});
+document.addEventListener('touchmove',e=>{if(running)e.preventDefault();},{passive:false});
+document.addEventListener('gesturestart',e=>e.preventDefault());
+document.addEventListener('contextmenu',e=>{if(running)e.preventDefault();});
+function applyLook(dt){const dz=.12,f=v=>{const a=Math.abs(v);return a<dz?0:Math.sign(v)*Math.pow((a-dz)/(1-dz),1.5);};
+ yaw-=f(lookX)*2.6*dt;pitch=THREE.MathUtils.clamp(pitch-f(lookY)*1.8*dt,-1.2,1.2);}
 let atkHeld=false;
 document.querySelectorAll('#btns div').forEach(b=>{b.addEventListener('touchstart',e=>{e.preventDefault();e.stopPropagation();audio();if(!running)return;const k=b.dataset.b;
  if(k==='atk'){atkHeld=true;attack(player);}if(k==='jump'&&player.y<=0)player.vy=6;if(k==='use')pickup(player);if(k==='cam'){camMode=camMode==='first'?'third':'first';setCam();}},{passive:false});
@@ -201,7 +209,7 @@ function loop(){requestAnimationFrame(loop);const dt=Math.min(clock.getDelta(),.
   // zone: holds 60s then shrinks to 12 over 7 minutes
   zoneR=THREE.MathUtils.clamp(R-(time-60)/420*(R-12),12,R);zoneMesh.scale.set(zoneR,1,zoneR);
   if(Math.abs(time-60)<dt)announce('The firestorm is closing in!');
-  for(const e of ents)updateEnt(e,dt);}
+  applyLook(dt);for(const e of ents)updateEnt(e,dt);}
  // day/night
  const p=(time/dayLen)%1,k=Math.max(0,Math.sin(p*Math.PI*2+0.3)*.5+.5);const light=THREE.MathUtils.smoothstep(k,.2,.6);
  sky.lerpColors(skyNight,skyDay,light);scene.background=sky;scene.fog.color.copy(sky);sun.intensity=.15+light*1;hemi.intensity=.25+light*.7;
