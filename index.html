@@ -38,20 +38,53 @@ button.big{font-size:20px;padding:12px 28px;margin:6px;border:0;border-radius:10
 #allies{position:fixed;left:8px;top:calc(max(8px,env(safe-area-inset-top)) + 150px);z-index:7;background:#0008;border-radius:8px;padding:6px;font-size:12px;width:min(170px,44vw);pointer-events:auto}
 #allies .ah{font-weight:bold;color:#7f7;margin-bottom:3px}#allies .ar{display:flex;align-items:center;gap:4px;margin:3px 0}#allies .ar span{flex:0 0 auto;max-width:70px;overflow:hidden;white-space:nowrap}#allies .ab{flex:1;height:6px;background:#333;border-radius:3px;overflow:hidden}#allies .ab i{display:block;height:100%;background:#4c4}
 #allies b{color:#f88;cursor:pointer;padding:0 4px}#allies .ao{display:flex;gap:3px;margin-top:4px}#allies .ao button{flex:1;font-size:11px;padding:6px 2px;border-radius:5px;border:1px solid #6a6;background:#132;color:#fff}#allies .ao button.on{background:#3a6}
+#home{background:linear-gradient(#0006,#000a)}
+button.mode{display:block;width:min(340px,86vw);margin:7px auto;padding:14px;font-size:22px}button.mode small{display:block;font-size:12px;font-weight:normal;opacity:.75}
+button.back{background:#444;color:#fff;font-size:15px;padding:8px 18px}
+#online .row{margin:6px 0;display:flex;gap:6px;align-items:center;justify-content:center;flex-wrap:wrap}#online input{font-size:18px;padding:8px;border-radius:8px;border:1px solid #886;background:#211;color:#fff}
+#oChars button{font-size:12px;padding:6px 8px;border-radius:6px;border:1px solid #886;background:#2a221a;color:#fff}#oChars button.on{background:#f5b942;color:#211}
+#oLobby{min-width:240px;background:#0006;border-radius:8px;padding:6px;font-size:14px;text-align:left}#oLobby div{padding:3px 6px}
+#pauseBtn{position:fixed;bottom:calc(max(24px,env(safe-area-inset-bottom)) + 40px);left:50%;transform:translateX(-50%);z-index:8;width:40px;height:34px;border-radius:8px;background:#0007;border:1px solid #fff6;display:flex;align-items:center;justify-content:center;font-weight:bold;cursor:pointer}
+#tut{position:fixed;left:50%;transform:translateX(-50%);top:22%;z-index:9;background:#000c;border:2px solid #f5b942;border-radius:12px;padding:12px 16px;width:min(360px,88vw);text-align:center;font-size:15px}
+#tut button,#offerBox button{margin:8px 4px 0;padding:8px 16px;border-radius:8px;border:0;background:#f5b942;font-weight:bold}
+#offerBox{position:fixed;left:50%;transform:translateX(-50%);top:45%;z-index:9;background:#000d;border:2px solid #7f7;border-radius:12px;padding:12px;text-align:center}
+#ping{opacity:.8}
 #final{font-size:clamp(20px,5vw,34px);margin:10px}
 </style>
 <script type="importmap">{"imports":{"three":"https://unpkg.com/three@0.160.0/build/three.module.js","three/addons/":"https://unpkg.com/three@0.160.0/examples/jsm/"}}</script>
 </head><body>
-<div id="select" class="screen">
+<div id="home" class="screen">
+ <h1 style="font-size:clamp(34px,9vw,64px)">TRIBUTE ARENA</h1><div style="opacity:.85;margin-bottom:14px">Survive. Outlast. Be the last one standing.</div>
+ <button class="big mode" id="mPractice">🎯 PRACTICE<small>Learn the controls, no pressure</small></button>
+ <button class="big mode" id="mSolo">⚔️ SOLO<small>You vs 23 AI tributes</small></button>
+ <button class="big mode" id="mOnline">🌐 ONLINE<small>Play with friends (2–6)</small></button>
+ <div id="qual" style="margin:6px 0;font-size:13px">Graphics: <button data-q="auto">Auto</button><button data-q="low">Low</button><button data-q="medium">Medium</button><button data-q="high">High</button></div>
+ <div id="homeStatus" style="font-size:12px;opacity:.7">Loading…</div>
+</div>
+<div id="online" class="screen hidden">
+ <h1>ONLINE</h1>
+ <div class="row">Name <input id="oName" maxlength="14" placeholder="Your name"></div>
+ <div id="oChars" class="row"></div>
+ <div class="row"><button class="big" id="oHost">Host game</button></div>
+ <div class="row"><input id="oCode" maxlength="6" placeholder="CODE" style="text-transform:uppercase;width:110px"><button class="big" id="oJoin">Join</button></div>
+ <div id="oStatus" style="min-height:20px;color:#f5b942"></div>
+ <div id="oLobby"></div>
+ <div class="row"><button class="big hidden" id="oStart">Start match</button><button class="big hidden" id="oCopy">Copy invite link</button></div>
+ <button class="big back" id="oBack">← Home</button>
+</div>
+<div id="pauseMenu" class="screen hidden"><h1>PAUSED</h1><div id="pauseNote" style="font-size:13px;opacity:.7"></div><button class="big" id="pResume">Resume</button><button class="big" id="pQuit">Quit to Home</button></div>
+<div id="tut" class="hidden"><div id="tutText"></div><div><button id="tutNext">Next</button><button id="tutSkip">Skip</button></div></div>
+<div id="offerBox" class="hidden"></div>
+<div id="pauseBtn" class="hidden">II</div>
+<div id="select" class="screen hidden">
  <h1>TRIBUTE ARENA</h1><div style="font-size:13px;opacity:.8">Choose your tribute. Last one standing wins.</div>
  <canvas id="preview"></canvas>
  <div id="chars"></div>
- <div id="qual" style="margin:6px 0;font-size:13px">Graphics: <button data-q="auto">Auto</button><button data-q="low">Low</button><button data-q="medium">Medium</button><button data-q="high">High</button></div>
- <button class="big" id="start" disabled>Loading…</button>
+ <button class="big" id="start" disabled>Loading…</button><button class="big back" id="sBack">← Home</button>
  <div style="font-size:11px;opacity:.6">Desktop: WASD move · mouse look · click attack · Space jump · E pick up/use · V camera</div>
 </div>
 <div id="end" class="screen hidden"><h1 id="endTitle">YOU DIED</h1><div id="final"></div>
- <div><button class="big" id="retry">Retry</button><button class="big" id="newchar">Choose new character</button></div></div>
+ <div><button class="big" id="retry">Retry</button><button class="big" id="newchar">Choose new character</button><button class="big" id="endHome">Home</button></div></div>
 <div id="hud" class="hidden">
  <div>❤ Health<div class="stat"><i id="hp" style="background:#e33"></i></div></div>
  <div>🍖 Hunger<div class="stat"><i id="hu" style="background:#e93"></i></div></div>
