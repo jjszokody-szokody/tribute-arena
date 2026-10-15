@@ -8,7 +8,15 @@ canvas{display:block}
 .screen{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(10,8,6,.92);z-index:20;padding:12px;text-align:center}
 .hidden{display:none!important}
 h1{margin:4px 0;font-size:clamp(26px,6vw,48px);color:#f5b942;letter-spacing:2px}
-#mapwrap{position:fixed;top:32px;right:8px;z-index:5;pointer-events:none;text-align:center;font-size:11px;text-shadow:0 1px 2px #000}#minimap{width:min(120px,28vw);height:min(120px,28vw);border-radius:50%;background:#0006;border:2px solid #fff5}
+#mapwrap{position:fixed;top:32px;right:8px;z-index:5;pointer-events:none;text-align:center;font-size:11px;text-shadow:0 1px 2px #000}
+#minimap{width:min(120px,28vw);height:min(120px,28vw);border-radius:50%;background:#0006;border:2px solid #fff5;pointer-events:auto;touch-action:manipulation;cursor:pointer}
+#fullMap{position:fixed;inset:0;z-index:15;background:#000c;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:max(10px,env(safe-area-inset-top)) 12px max(12px,env(safe-area-inset-bottom));pointer-events:auto;touch-action:manipulation}
+#fullMap.hidden{display:none!important}
+#fullMap .fmHead{width:min(92vw,720px);display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;color:#f5e6c8;font-weight:bold;font-size:16px;text-shadow:0 1px 3px #000}
+#fullMap .fmClose{width:44px;height:44px;border-radius:22px;border:2px solid #fff6;background:#0009;color:#fff;font-size:22px;font-weight:bold;cursor:pointer;touch-action:manipulation}
+#fullMapCan{width:min(92vw,720px);height:min(92vw,720px);max-height:min(72vh,720px);border-radius:50%;border:3px solid #fff5;background:#000;touch-action:manipulation;cursor:pointer}
+#fullMap .fmLeg{width:min(92vw,720px);margin-top:8px;font-size:11px;opacity:.85;text-align:center;line-height:1.45;text-shadow:0 1px 2px #000}
+#fullMap .fmNote{font-size:11px;opacity:.65;margin-top:4px}
 #select,#end{overflow-y:auto;touch-action:pan-y;justify-content:safe center}#select *{touch-action:pan-y}
 .ch img{width:100%;height:64px;object-fit:contain;display:block}.ch{font-size:11px}
 #chars{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;max-width:780px;width:100%}@media(min-width:700px){#chars{grid-template-columns:repeat(4,1fr)}}
@@ -121,7 +129,8 @@ button.back{background:#444;color:#fff;font-size:15px;padding:8px 18px}
  <div>✦ Sponsors<div class="stat"><i id="favor" style="background:linear-gradient(90deg,#c0c8d8,#e8eef8,#c9a227)"></i></div></div>
  <div id="weap">Weapon: Fists</div><div id="inv"></div><div id="dayl"></div>
 </div>
-<div id="count" class="hidden"></div><div id="mapwrap" class="hidden"><canvas id="minimap" width="240" height="240"></canvas><div id="zonename"></div></div><div id="msg"></div><div id="nightReel" class="hidden"><div class="rt">In remembrance</div><div id="reelCard"><div class="rn" id="reelName">—</div><div class="rd" id="reelDist"></div><div class="rz" id="reelZone"></div></div></div><div id="cross" class="hidden"></div><div id="hint"></div><div id="danger"></div>
+<div id="count" class="hidden"></div><div id="mapwrap" class="hidden"><canvas id="minimap" width="240" height="240"></canvas><div id="zonename"></div></div>
+<div id="fullMap" class="hidden"><div class="fmHead"><span id="fmTitle">Arena Map</span><button type="button" class="fmClose" id="fmClose" aria-label="Close map">✕</button></div><canvas id="fullMapCan" width="640" height="640"></canvas><div class="fmLeg">✦ Cornucopia · 🏛 Ruins · 📦 Cache · ⛺ Camp · 🔴 Firestorm · ▲ You · ● Allies · 🪂 Gifts</div><div class="fmNote" id="fmNote">Tap map or ✕ to close</div></div><div id="msg"></div><div id="nightReel" class="hidden"><div class="rt">In remembrance</div><div id="reelCard"><div class="rn" id="reelName">—</div><div class="rd" id="reelDist"></div><div class="rz" id="reelZone"></div></div></div><div id="cross" class="hidden"></div><div id="hint"></div><div id="danger"></div>
 <div id="touch" class="hidden"><div class="joy" id="joyL"><span>MOVE</span><div class="knob"></div></div><div class="joy" id="joyR"><span>LOOK</span><div class="knob"></div></div></div>
 <div id="allyBtn" class="hidden">🤝 ALLY</div><div id="campBtn" class="hidden">⛺ CAMP</div><div id="aidBtn" class="hidden">🪂 AID</div><div id="campMenu" class="hidden"></div><div id="sleepOv" class="hidden"><div>💤 Sleeping…</div><small>Tap to wake up</small></div><div id="allies" class="hidden"></div>
 <div id="btns" class="hidden"><div data-b="cam">CAM</div><div data-b="jump">JUMP</div><div data-b="use">GRAB</div><div data-b="block" style="background:#345">BLOCK</div><div data-b="atk" style="background:#a226">ATK</div></div>
