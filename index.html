@@ -22,13 +22,13 @@ button.big{font-size:20px;padding:12px 28px;margin:6px;border:0;border-radius:10
 .stat{width:min(160px,32vw);height:10px;background:#0008;border-radius:5px;margin:3px 0;overflow:hidden}.stat i{display:block;height:100%}
 #count{position:fixed;top:8px;right:10px;z-index:5;font-size:15px;font-weight:bold;text-align:right;text-shadow:0 1px 2px #000;pointer-events:none}
 #msg{position:fixed;top:36%;left:0;right:0;text-align:center;font-size:clamp(18px,4vw,30px);font-weight:bold;color:#f5b942;text-shadow:0 2px 4px #000;z-index:6;pointer-events:none;opacity:0;transition:opacity .5s}
-#nightReel{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(max(16px,env(safe-area-inset-bottom)) + 12px);z-index:8;pointer-events:none;display:flex;flex-direction:row;align-items:center;gap:10px;max-width:min(420px,92vw);padding:8px 14px;border-radius:12px;border:1px solid #c9a22755;background:#0a0806a8;box-shadow:0 4px 18px #0008;opacity:0;transition:opacity .8s;backdrop-filter:blur(4px)}
+#nightReel{position:fixed;left:max(12px,env(safe-area-inset-left));right:auto;top:auto;bottom:calc(max(14px,env(safe-area-inset-bottom)) + 8px);z-index:8;pointer-events:none!important;display:flex;flex-direction:column;align-items:flex-start;gap:2px;width:min(280px,70vw);padding:8px 12px;border-radius:10px;border:1px solid #c9a22766;background:rgba(8,6,4,.72);box-shadow:0 2px 12px #000a;opacity:0;transition:opacity .7s}
 #nightReel.on{opacity:1}
-#nightReel .rt{font-size:10px;letter-spacing:.28em;text-transform:uppercase;color:#c9a227;opacity:.9;white-space:nowrap;flex-shrink:0}
-#reelCard{text-align:left;padding:0;border:0;background:transparent;min-width:0}
-#reelCard .rn{font-size:clamp(14px,3.2vw,18px);font-weight:bold;color:#f5e6c8;text-shadow:0 1px 3px #000;line-height:1.2}
-#reelCard .rd{font-size:11px;color:#c9a227;margin-top:2px;letter-spacing:.08em}
-#reelCard .rz{font-size:10px;opacity:.6;margin-top:1px;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#nightReel .rt{font-size:9px;letter-spacing:.22em;text-transform:uppercase;color:#c9a227;opacity:.85}
+#reelCard{text-align:left;padding:0;border:0;background:transparent;width:100%}
+#reelCard .rn{font-size:15px;font-weight:bold;color:#f5e6c8;text-shadow:0 1px 3px #000;line-height:1.25}
+#reelCard .rd{font-size:11px;color:#c9a227;margin-top:1px}
+#reelCard .rz{font-size:10px;opacity:.55;margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 #cross{position:fixed;left:50%;top:50%;width:6px;height:6px;margin:-3px;border-radius:50%;background:#fff8;z-index:5;pointer-events:none}
 #hint{position:fixed;bottom:40%;left:0;right:0;text-align:center;z-index:5;pointer-events:none;font-size:15px}
 #touch{position:fixed;inset:0;z-index:4;pointer-events:none}
