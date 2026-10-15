@@ -920,9 +920,9 @@ function steerDir(e,dx,dz){let l=Math.hypot(dx,dz)||1;dx/=l;dz/=l;let ax=0,az=0;
  dx+=ax;dz+=az;l=Math.hypot(dx,dz)||1;return[dx/l,dz/l];}
 function obsTop(o){return H(o.x,o.z)+(o.h||1.5);}
 function standY(x,z,yHint){let y=Math.max(H(x,z),WL-.9);
- for(const o of obsNear(x,z)){if(!(o.h>1.05))continue;const d=Math.hypot(x-o.x,z-o.z);if(d>=o.r*.9)continue;
-  const top=obsTop(o);// only count as floor if already near/above the lip (or no hint)
-  if(yHint===undefined||yHint>top-1.35)y=Math.max(y,top);}
+ for(const o of obsNear(x,z)){if(!(o.h>1.05))continue;const d=Math.hypot(x-o.x,z-o.z);const pad=Math.max(.12,o.r*.98);
+  if(d>=pad)continue;const top=obsTop(o);// floor only when near/above the lip (or no hint)
+  if(yHint===undefined||yHint>top-1.6)y=Math.max(y,top);}
  return y;}
 function collide(e){if(e.climbing)return;for(let i=-1;i<=1;i++)for(let j=-1;j<=1;j++)for(const o of (grid.get(gkey(Math.floor(e.x/GC)+i,Math.floor(e.z/GC)+j))||[])){
   const top=obsTop(o);if(e.y>=top-.3)continue;// standing on top — walkable disk
@@ -931,9 +931,12 @@ function collide(e){if(e.climbing)return;for(let i=-1;i<=1;i++)for(let j=-1;j<=1
 function move(e,mx,mz,dt){if(e.climbing)return;const ox=e.x,oz=e.z;let sp=4.6*e.spd*(inWater(e.x,e.z)?.5:1)*(e.hunger<=0||e.thirst<=0?.7:1)*(e.grounded===false?.85:1);if(onIce(e.x,e.z)){e.iceVx=(e.iceVx||0)*0.94+mx*sp*dt*2.2;e.iceVz=(e.iceVz||0)*0.94+mz*sp*dt*2.2;e.x+=e.iceVx;e.z+=e.iceVz;}else{e.iceVx=e.iceVz=0;e.x+=mx*sp*dt;e.z+=mz*sp*dt;}collide(e);e.speed=Math.hypot(e.x-ox,e.z-oz)/dt;}
 function grounded(e){const gy=standY(e.x,e.z,e.y);return e.y<=gy+.1&&e.vy<=.15;}
 function climbable(o){return !!(o&&(o.climb||o.b===4||o.corn)&&((o.h||0)>1.1));}
-function findClimb(e,needFace){const fx=Math.sin(e.dir),fz=Math.cos(e.dir);let best=null,bd=2.4;
- for(const o of obsNear(e.x+fx*.6,e.z+fz*.6)){if(!climbable(o))continue;const dx=o.x-e.x,dz=o.z-e.z,d=Math.hypot(dx,dz),reach=o.r+.95;if(d>reach||d>bd)continue;
-  if(needFace){const ahead=(dx*fx+dz*fz)/(d||1);if(ahead<.2)continue;}
+function findClimb(e,needFace){const fx=Math.sin(e.dir),fz=Math.cos(e.dir);let best=null,bd=6;
+ // scan 3x3 cells so large rocks/walls beside the player still register
+ const sx=Math.floor((e.x+fx*.6)/GC),sz=Math.floor((e.z+fz*.6)/GC);
+ for(let i=-1;i<=1;i++)for(let j=-1;j<=1;j++)for(const o of (grid.get(gkey(sx+i,sz+j))||[])){if(!climbable(o))continue;
+  const dx=o.x-e.x,dz=o.z-e.z,d=Math.hypot(dx,dz),reach=o.r+1.15;if(d>reach||d>bd)continue;
+  if(needFace){const ahead=(dx*fx+dz*fz)/(d||1);if(ahead<.15)continue;}
   bd=d;best=o;}return best;}
 function startClimb(e,o){if(!o||e.climbStam<(e.isHuman?12:8))return false;const dx=e.x-o.x,dz=e.z-o.z,d=Math.hypot(dx,dz)||1;
  const hold=o.r+.42;e.x=o.x+dx/d*hold;e.z=o.z+dz/d*hold;
@@ -943,8 +946,8 @@ function endClimb(e,push){if(!e.climbing)return;const o=e.climbing.o;e.climbStam
  if(push&&o){const dx=e.x-o.x,dz=e.z-o.z,d=Math.hypot(dx,dz)||1;e.x+=dx/d*.55;e.z+=dz/d*.55;e.vy=1.6;}
  collide(e);}
 function mantleTop(e){if(!e.climbing)return false;const o=e.climbing.o,top=obsTop(o);e.climbStam=e.climbing.stam;e.climbing=null;e.climbCd=.28;
- const dx=e.x-o.x,dz=e.z-o.z,d=Math.hypot(dx,dz)||1;const onto=Math.max(.12,Math.min(o.r*.55,o.r-.15));
- e.x=o.x+(dx/d)*onto;e.z=o.z+(dz/d)*onto;e.y=top+.04;e.vy=0;e.grounded=true;e.onTop=o;
+ const dx=e.x-o.x,dz=e.z-o.z,d=Math.hypot(dx,dz)||1;const onto=Math.max(.06,Math.min(o.r*.4,Math.max(o.r-.25,.08)));
+ e.x=o.x+(dx/d)*onto;e.z=o.z+(dz/d)*onto;e.y=top+.05;e.vy=0;e.grounded=true;e.onTop=o;
  if(e.isPlayer&&!simMode){announce('Topped out');tone(340,.07,'triangle',.1,260);if(e.fig)playOnce(e.fig,'punch',.28);}
  return true;}
 function stepClimb(e,mx,mz,dt){const C=e.climbing;if(!C)return;const o=C.o;C.stam-=dt*(e.isHuman?9:14);e.climbStam=C.stam;
@@ -953,10 +956,11 @@ function stepClimb(e,mx,mz,dt){const C=e.climbing;if(!C)return;const o=C.o;C.sta
  const up=mz,slide=mx;const ang=Math.atan2(dx,dz)+slide*dt*1.6;
  e.x=o.x+Math.sin(ang)*hold;e.z=o.z+Math.cos(ang)*hold;
  const top=obsTop(o),lo=C.base+.15,hi=C.base+C.maxH;
+ // allow topping out even when climb height was capped below true surface
+ const lip=Math.min(top,hi);
  e.y=Math.min(hi, Math.max(C.base+.1, e.y+up*3.0*dt));
- // near lip + keep pushing up → mantle onto top
- if(e.y>=top-.55&&up>.18){mantleTop(e);return;}
- if(e.y>=hi-.08&&up>.2){mantleTop(e);return;}
+ if(e.y>=lip-.55&&up>.15){mantleTop(e);return;}
+ if(e.y>=hi-.06&&up>.12){mantleTop(e);return;}
  if(e.y<=lo&&up<-.2)endClimb(e,true);
  e.vy=0;e.speed=Math.abs(up)*2.5+Math.abs(slide)*1.2;e.dir=Math.atan2(o.x-e.x,o.z-e.z);
  if(!simMode&&e.fig)setAnim(e.fig,Math.abs(up)>.1||Math.abs(slide)>.1?'walk':'idle',1.1);}
@@ -1639,7 +1643,7 @@ Object.assign(window.__game,{
  pitch:(v)=>{if(v!==undefined)pitch=v;return pitch;},
  projs:()=>projs.map(p=>({x:+p.x.toFixed(1),z:+p.z.toFixed(1),y:+p.y.toFixed(2),life:+p.life.toFixed(2)})),
  playAnthem,stopAnthem,doJump,findClimb,startClimb,endClimb,mantleTop,obsTop,standY,grounded,anthemPlaying:()=>anthemOn,nightFlag:()=>wasNight,nightCycle,isNight,deaths:()=>deaths,pendingReel:()=>pendingReel.slice(),queueFallen,releaseMutts,muttStats:()=>({releases:muttReleases,lastDay:lastMuttDay,night:muttNight}),cannon,
- nearestClimbable:(kind)=>{let best=null,bd=1e9;for(const o of obstacles){if(!climbable(o))continue;if(kind==='tree'&&o.b!==4)continue;if(kind==='rock'&&(o.b===4||o.corn))continue;if(kind==='corn'&&!o.corn)continue;const d=Math.hypot(o.x-(player?player.x:0),o.z-(player?player.z:0));if(d<bd){bd=d;best=o;}}return best?{x:best.x,z:best.z,h:best.h,r:best.r,b:best.b,corn:!!best.corn,d:bd}:null},
+ nearestClimbable:(kind)=>{let best=null,bd=1e9;for(const o of obstacles){if(!climbable(o))continue;if(kind==='tree'&&o.b!==4)continue;if(kind==='rock'&&(o.b===4||o.corn))continue;if(kind==='corn'&&!o.corn)continue;const d=Math.hypot(o.x-(player?player.x:0),o.z-(player?player.z:0));if(d<bd){bd=d;best=o;}}return best||null},
  forceGift:(opts={})=>{if(!player)return null;if(opts.favor!=null)player.favor=opts.favor;const g=dropGift(player,{force:true,instant:opts.instant!==false,contents:opts.contents,emerg:!!opts.emerg});return g&&{id:g.id,x:g.x,z:g.z,landed:g.landed,contents:g.contents.slice()};},
  gifts:()=>gifts.map(g=>({id:g.id,x:+g.x.toFixed(1),z:+g.z.toFixed(1),y:+g.y.toFixed(1),landed:g.landed,opened:g.opened,contents:g.contents.slice()})),
  openNearestGift:()=>{const g=gifts.find(x=>x.landed&&!x.opened);if(!g||!player)return false;openGift(player,g);return true;},
