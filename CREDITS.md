@@ -22,3 +22,6 @@
 ## Code & networking
 - three.js r160 (MIT), loaded from unpkg: Sky, Water, GLTFLoader, MeshoptDecoder, SkeletonUtils, RoomEnvironment, EffectComposer/UnrealBloomPass.
 - PeerJS 1.5.4 (MIT) for online peer-to-peer signaling via 0.peerjs.com.
+
+## Game content (original)
+- Procedural weapon meshes, enterable Cornucopia pavilion variants per biome, character recolor palettes, and arena biomes are original to Tribute Arena.

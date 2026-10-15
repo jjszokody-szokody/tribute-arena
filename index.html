@@ -10,8 +10,8 @@ canvas{display:block}
 h1{margin:4px 0;font-size:clamp(26px,6vw,48px);color:#f5b942;letter-spacing:2px}
 #mapwrap{position:fixed;top:32px;right:8px;z-index:5;pointer-events:none;text-align:center;font-size:11px;text-shadow:0 1px 2px #000}#minimap{width:min(120px,28vw);height:min(120px,28vw);border-radius:50%;background:#0006;border:2px solid #fff5}
 #select,#end{overflow-y:auto;touch-action:pan-y;justify-content:safe center}#select *{touch-action:pan-y}
-.ch img{width:100%;height:72px;object-fit:contain;display:block}
-#chars{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;max-width:720px;width:100%}
+.ch img{width:100%;height:64px;object-fit:contain;display:block}.ch{font-size:11px}
+#chars{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;max-width:780px;width:100%}@media(min-width:700px){#chars{grid-template-columns:repeat(4,1fr)}}
 .ch{background:#2a221a;border:2px solid #554;border-radius:10px;padding:6px;cursor:pointer;font-size:12px}
 .ch.sel{border-color:#f5b942;background:#3d3020}
 .ch b{font-size:14px;display:block}
@@ -29,8 +29,9 @@ button.big{font-size:20px;padding:12px 28px;margin:6px;border:0;border-radius:10
 #joyL{left:max(20px,env(safe-area-inset-left))}#joyR{right:max(20px,env(safe-area-inset-right))}
 .knob{position:absolute;left:37px;top:37px;width:56px;height:56px;border-radius:50%;background:#fff8;border:2px solid #fffc;pointer-events:none}
 .joy span{position:absolute;top:-20px;left:0;right:0;text-align:center;font-size:11px;opacity:.7}
-#btns{position:fixed;right:max(14px,env(safe-area-inset-right));bottom:calc(max(24px,env(safe-area-inset-bottom)) + 160px);z-index:6;display:grid;grid-template-columns:repeat(2,62px);gap:10px;touch-action:none}
-#btns div{width:62px;height:62px;border-radius:50%;background:#0006;border:2px solid #fff7;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:bold}
+#btns{position:fixed;right:max(14px,env(safe-area-inset-right));bottom:calc(max(24px,env(safe-area-inset-bottom)) + 160px);z-index:6;display:grid;grid-template-columns:repeat(3,56px);gap:8px;touch-action:none}
+#btns div{width:56px;height:56px;font-size:11px}
+#btns div{border-radius:50%;background:#0006;border:2px solid #fff7;display:flex;align-items:center;justify-content:center;font-weight:bold}
 #btns div:active{background:#f5b94288}
 #danger{position:fixed;inset:0;pointer-events:none;z-index:3;box-shadow:inset 0 0 80px #f30;opacity:0;transition:opacity .3s}
 #qual button{font-size:13px;padding:5px 10px;margin:2px;border-radius:6px;border:1px solid #886;background:#2a221a;color:#fff}#qual button.on{background:#f5b942;color:#211}
@@ -93,9 +94,14 @@ button.back{background:#444;color:#fff;font-size:15px;padding:8px 18px}
 <div id="select" class="screen hidden">
  <h1>TRIBUTE ARENA</h1><div style="font-size:13px;opacity:.8">Choose your tribute. Last one standing wins.</div>
  <canvas id="preview"></canvas>
+ <div id="customize" style="max-width:420px;width:100%;margin:6px 0;font-size:13px;text-align:left">
+  <div style="margin:4px 0">Name <input id="cName" maxlength="14" placeholder="Your tribute name" style="width:60%;padding:6px;border-radius:6px;border:1px solid #665;background:#1a1510;color:#fff"></div>
+  <div style="margin:6px 0">Outfit <span id="palRow"></span></div>
+  <label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="checkbox" id="cAcc" checked> Show accessory</label>
+ </div>
  <div id="chars"></div>
  <button class="big" id="start" disabled>Loading…</button><button class="big back" id="sBack">← Home</button>
- <div style="font-size:11px;opacity:.6">Desktop: WASD move · mouse look · click attack · Space jump · E pick up/use · V camera</div>
+ <div style="font-size:11px;opacity:.6">Desktop: WASD move · mouse look · click attack · Space jump · E pick up/use · Shift block · V camera</div>
 </div>
 <div id="end" class="screen hidden"><h1 id="endTitle">YOU DIED</h1><div id="final"></div>
  <div><button class="big" id="retry">Retry</button><button class="big" id="newchar">Choose new character</button><button class="big" id="endHome">Home</button></div></div>
@@ -108,6 +114,6 @@ button.back{background:#444;color:#fff;font-size:15px;padding:8px 18px}
 <div id="count" class="hidden"></div><div id="mapwrap" class="hidden"><canvas id="minimap" width="240" height="240"></canvas><div id="zonename"></div></div><div id="msg"></div><div id="cross" class="hidden"></div><div id="hint"></div><div id="danger"></div>
 <div id="touch" class="hidden"><div class="joy" id="joyL"><span>MOVE</span><div class="knob"></div></div><div class="joy" id="joyR"><span>LOOK</span><div class="knob"></div></div></div>
 <div id="allyBtn" class="hidden">🤝 ALLY</div><div id="campBtn" class="hidden">⛺ CAMP</div><div id="campMenu" class="hidden"></div><div id="sleepOv" class="hidden"><div>💤 Sleeping…</div><small>Tap to wake up</small></div><div id="allies" class="hidden"></div>
-<div id="btns" class="hidden"><div data-b="cam">CAM</div><div data-b="jump">JUMP</div><div data-b="use">GRAB</div><div data-b="atk" style="background:#a226">ATK</div></div>
+<div id="btns" class="hidden"><div data-b="cam">CAM</div><div data-b="jump">JUMP</div><div data-b="use">GRAB</div><div data-b="block" style="background:#345">BLOCK</div><div data-b="atk" style="background:#a226">ATK</div></div>
 <script type="module" src="game.js"></script>
 </body></html>
