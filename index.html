@@ -8,12 +8,15 @@ canvas{display:block}
 .screen{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(10,8,6,.92);z-index:20;padding:12px;text-align:center}
 .hidden{display:none!important}
 h1{margin:4px 0;font-size:clamp(26px,6vw,48px);color:#f5b942;letter-spacing:2px}
+#mapwrap{position:fixed;top:32px;right:8px;z-index:5;pointer-events:none;text-align:center;font-size:11px;text-shadow:0 1px 2px #000}#minimap{width:min(120px,28vw);height:min(120px,28vw);border-radius:50%;background:#0006;border:2px solid #fff5}
+#select,#end{overflow-y:auto;touch-action:pan-y;justify-content:safe center}#select *{touch-action:pan-y}
+.ch img{width:100%;height:72px;object-fit:contain;display:block}
 #chars{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;max-width:720px;width:100%}
 .ch{background:#2a221a;border:2px solid #554;border-radius:10px;padding:6px;cursor:pointer;font-size:12px}
 .ch.sel{border-color:#f5b942;background:#3d3020}
 .ch b{font-size:14px;display:block}
 .bar{height:5px;background:#222;border-radius:3px;margin:2px 0}.bar i{display:block;height:100%;border-radius:3px}
-#preview{width:min(240px,40vw);height:min(200px,28vh)}
+#preview{width:min(220px,40vw);height:min(180px,22vh);flex-shrink:0}
 button.big{font-size:20px;padding:12px 28px;margin:6px;border:0;border-radius:10px;background:#f5b942;color:#211;font-weight:bold;cursor:pointer}
 #hud{position:fixed;left:0;right:0;top:0;padding:8px;padding-top:max(8px,env(safe-area-inset-top));z-index:5;pointer-events:none;font-size:13px;text-shadow:0 1px 2px #000}
 .stat{width:min(160px,32vw);height:10px;background:#0008;border-radius:5px;margin:3px 0;overflow:hidden}.stat i{display:block;height:100%}
@@ -51,7 +54,7 @@ button.big{font-size:20px;padding:12px 28px;margin:6px;border:0;border-radius:10
  <div>💧 Thirst<div class="stat"><i id="th" style="background:#39f"></i></div></div>
  <div id="weap">Weapon: Fists</div><div id="dayl"></div>
 </div>
-<div id="count" class="hidden"></div><div id="msg"></div><div id="cross" class="hidden"></div><div id="hint"></div><div id="danger"></div>
+<div id="count" class="hidden"></div><div id="mapwrap" class="hidden"><canvas id="minimap" width="240" height="240"></canvas><div id="zonename"></div></div><div id="msg"></div><div id="cross" class="hidden"></div><div id="hint"></div><div id="danger"></div>
 <div id="touch" class="hidden"><div class="joy" id="joyL"><span>MOVE</span><div class="knob"></div></div><div class="joy" id="joyR"><span>LOOK</span><div class="knob"></div></div></div>
 <div id="btns" class="hidden"><div data-b="cam">CAM</div><div data-b="jump">JUMP</div><div data-b="use">GRAB</div><div data-b="atk" style="background:#a226">ATK</div></div>
 <script type="module" src="game.js"></script>
