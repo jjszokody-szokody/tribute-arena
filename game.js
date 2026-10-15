@@ -151,6 +151,45 @@ function previewLoop(){requestAnimationFrame(previewLoop);if($('select').classLi
 let ac=null;function audio(){if(!ac)try{ac=new (window.AudioContext||window.webkitAudioContext)();}catch(e){}if(ac&&ac.state==='suspended')ac.resume();}
 function tone(f,dur,type='sine',vol=.3,slide=0){if(!ac)return;const o=ac.createOscillator(),g=ac.createGain();o.type=type;o.frequency.value=f;if(slide)o.frequency.exponentialRampToValueAtTime(slide,ac.currentTime+dur);g.gain.setValueAtTime(vol,ac.currentTime);g.gain.exponentialRampToValueAtTime(.001,ac.currentTime+dur);o.connect(g).connect(ac.destination);o.start();o.stop(ac.currentTime+dur);}
 function cannon(){if(!ac)return;tone(90,1.2,'sine',.8,30);const n=ac.createBufferSource(),b=ac.createBuffer(1,ac.sampleRate*.6,ac.sampleRate),d=b.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/d.length,3);n.buffer=b;const g=ac.createGain();g.gain.value=.5;const f=ac.createBiquadFilter();f.type='lowpass';f.frequency.value=400;n.connect(f).connect(g).connect(ac.destination);n.start();}
+// Capitol-style night anthem (original procedural WebAudio — not any copyrighted soundtrack)
+let wasNight=false,anthemOn=false,anthemNodes=[],reelTimer=null,reelIdx=0;
+function stopAnthem(){for(const n of anthemNodes){try{n.stop?.();n.disconnect?.();}catch(e){}}anthemNodes=[];anthemOn=false;hideDeathReel();}
+function hideDeathReel(){clearTimeout(reelTimer);reelTimer=null;const el=$('nightReel');if(el){el.classList.remove('on');setTimeout(()=>el.classList.add('hidden'),1200);}}
+function showDeathReel(){const el=$('nightReel');if(!el||simMode)return;const list=deaths.slice();el.classList.remove('hidden');requestAnimationFrame(()=>el.classList.add('on'));
+ reelIdx=0;const tick=()=>{if(!list.length){$('reelName').textContent='No fallen yet';$('reelDist').textContent='';$('reelZone').textContent='The arena waits';}
+  else{const d=list[reelIdx%list.length];$('reelName').textContent=d.name;$('reelDist').textContent=`District ${d.d}`;$('reelZone').textContent=d.zone||'';reelIdx++;}
+  reelTimer=setTimeout(tick,list.length?2200:4000);};
+ tick();setTimeout(hideDeathReel,22000);}
+function note(freq,t0,dur,type,vol,filt){if(!ac)return;const o=ac.createOscillator(),g=ac.createGain(),f=ac.createBiquadFilter();
+ o.type=type||'sawtooth';o.frequency.value=freq;f.type='lowpass';f.frequency.value=filt||1800;f.Q.value=0.7;
+ g.gain.setValueAtTime(0.0001,t0);g.gain.exponentialRampToValueAtTime(vol,t0+.08);g.gain.exponentialRampToValueAtTime(vol*.55,t0+dur*.55);g.gain.exponentialRampToValueAtTime(0.0001,t0+dur);
+ o.connect(f);f.connect(g);g.connect(ac.destination);o.start(t0);o.stop(t0+dur+.05);anthemNodes.push(o,g,f);}
+function pad(freqs,t0,dur,vol){for(const fq of freqs){note(fq,t0,dur,'sine',vol*.45,900);note(fq*1.002,t0,dur,'triangle',vol*.25,700);}}
+function playAnthem(fromNet){if(simMode)return;if(anthemOn)return;audio();anthemOn=true;showDeathReel();
+ if(!ac){setTimeout(()=>{anthemOn=false;},22000);if(NET.role==='host'&&!fromNet)try{netBroadcast({t:'anthem'});}catch(e){}return;}
+ try{if(ac.state==='suspended')ac.resume();}catch(e){}
+ const t0=ac.currentTime+.05;
+ // Solemn D-minor Capitol march (original): brass fanfare + choir pad, ~22s
+ const bpm=72,beat=60/bpm;
+ const mel=[ // [degree semitone from D3, beats, vol]
+  [0,2,.14],[2,1,.12],[3,1,.12],[5,2,.15],[3,1,.11],[2,1,.11],[0,2,.14],
+  [7,2,.13],[5,1,.12],[3,1,.12],[5,2,.14],[7,1,.11],[8,1,.11],[7,2,.13],
+  [5,2,.14],[3,1,.12],[2,1,.12],[0,2,.15],[2,1,.11],[-2,1,.11],[0,3,.16],
+  [12,2,.12],[10,1,.11],[8,1,.11],[7,2,.13],[5,1,.1],[3,1,.1],[0,4,.15]
+ ];
+ const D3=146.83;
+ pad([D3,D3*1.2,D3*1.5],t0,beat*8,.07);
+ pad([D3*.75,D3,D3*1.5],t0+beat*8,beat*8,.08);
+ pad([D3,D3*1.189,D3*1.498],t0+beat*16,beat*10,.09);
+ let t=t0+beat*.5;for(const [semi,beats,vol] of mel){const f=D3*Math.pow(2,semi/12);
+  note(f,t,beat*beats*.92,'sawtooth',vol,1400);note(f*.5,t,beat*beats*.92,'triangle',vol*.55,900); // brass octave
+  if(beats>=2)note(f*1.5,t+beat*.15,beat*(beats-.2)*.8,'triangle',vol*.22,1100); // soft fifth
+  t+=beat*beats;}
+ // closing choir swell
+ pad([D3,D3*1.2,D3*1.5,D3*2],t0+beat*26,beat*6,.1);
+ setTimeout(()=>{anthemOn=false;anthemNodes=[];},24000);
+ if(NET.role==='host'&&!fromNet)try{netBroadcast({t:'anthem'});}catch(e){}}
+function nightCycle(){const n=isNight();if(n&&!wasNight&&running&&!simMode)playAnthem();wasNight=n;}
 
 // ---------- renderer / scene ----------
 let R=220,WL=-.6,arenaId='wilds',arena=null,thirstK=1,coldK=0,hazT=0,hazActive=false;
@@ -286,7 +325,7 @@ function chunkedSmall(geo,mat,list){const C=40,by=new Map();for(const it of list
 function updateChunks(px,pz){for(const c of chunks)c.m.visible=Math.hypot(c.x-px,c.z-pz)<c.dist;}
 function treeDensity(x,z){const r=Math.hypot(x,z);if(r<24)return 0;const w=zoneW(x,z);if(w.ruins>.3||Math.hypot(x-CAVE.x,z-CAVE.z)<18)return 0;if(H(x,z)<WL+.6)return 0;
  const base=.28+w.forest*1.4-w.meadow*.27+w.high*-.1+(r>R?.35:0);return base*(arena.treeMul||1);}
-function addRock(x,z,sx,sy,sz,ry=rnd(0,6),y0){const y=y0!==undefined?y0:H(x,z)+sy*.25;RL.push({x,z,m:new THREE.Matrix4().compose(P3.set(x,y,z),QQ.setFromEuler(E.set(rnd(-.3,.3),ry,rnd(-.3,.3))),S3.set(sx,sy,sz))});if(Math.hypot(x,z)<R)obstacles.push({x,z,r:Math.max(sx,sz)*.85,b:sy>1.2?1.3:.6});}
+function addRock(x,z,sx,sy,sz,ry=rnd(0,6),y0){const y=y0!==undefined?y0:H(x,z)+sy*.25;RL.push({x,z,m:new THREE.Matrix4().compose(P3.set(x,y,z),QQ.setFromEuler(E.set(rnd(-.3,.3),ry,rnd(-.3,.3))),S3.set(sx,sy,sz))});if(Math.hypot(x,z)<R)obstacles.push({x,z,r:Math.max(sx,sz)*.85,b:sy>1.2?1.3:.6,climb:sy>0.9?1:0,h:Math.max(1.2,sy*1.65)});}
 function seedRng(seed){let s=seed|0;Math.random=()=>{s|=0;s=s+0x6D2B79F5|0;let t=Math.imul(s^s>>>15,1|s);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
 function clearWorldMeshes(){for(const m of worldExtras){scene.remove(m);if(m.geometry&&m.geometry.dispose&&m!==ground)try{m.geometry.dispose();}catch(e){}}worldExtras=[];chunks=[];obstacles=[];SHORE=[];TL.length=0;PL.length=0;LL.length=0;RL.length=0;
  if(ground){scene.remove(ground);ground.geometry.dispose();ground=null;}if(dirtRing){scene.remove(dirtRing);dirtRing.geometry.dispose();dirtRing=null;}
@@ -342,12 +381,12 @@ function buildCornucopia(A){
   const wlen=R0*2*Math.PI/segs*.9;
   const wall=new THREE.Mesh(new THREE.BoxGeometry(wlen,Hwall,.55),wallM);
   wall.position.set(x,Hwall/2,z);wall.rotation.y=amid;wall.castShadow=wall.receiveShadow=true;g.add(wall);
-  obstacles.push({x:CORN.x+x,z:CORN.z+z,r:wlen*.45,b:1.6,corn:1});
+  obstacles.push({x:CORN.x+x,z:CORN.z+z,r:wlen*.45,b:1.6,corn:1,climb:1,h:Hwall});
  }
  // doorway pillars
  for(const side of [-1,1]){const a=side*door;const x=Math.sin(a)*R0,z=Math.cos(a)*R0;
   const p=new THREE.Mesh(new THREE.CylinderGeometry(.28,.32,Hwall+.3,8),wallM);p.position.set(x,Hwall/2+.1,z);p.castShadow=true;g.add(p);
-  obstacles.push({x:CORN.x+x,z:CORN.z+z,r:.45,b:1.7,corn:1});}
+  obstacles.push({x:CORN.x+x,z:CORN.z+z,r:.45,b:1.7,corn:1,climb:1,h:Hwall});}
  // roof / canopy (elevated so FP feels enclosed but walkable)
  if(id==='desert'){const roof=new THREE.Mesh(new THREE.ConeGeometry(R0+1.2,2.2,12,1,true),roofM);roof.position.y=Hwall+1.0;roof.castShadow=true;g.add(roof);
   // sunburst rays
@@ -412,7 +451,7 @@ function rebuildArena(biomeId,seed){
  {let n=0,guard=0;while(n<nTrees&&guard++<nTrees*40){const a=Math.random()*6.283,r=Math.sqrt(Math.random())*(R+28),x=Math.cos(a)*r,z=Math.sin(a)*r;if(Math.random()*1.7>treeDensity(x,z))continue;
   const s=rnd(.8,1.5),y=H(x,z)-.2;QQ.setFromEuler(E.set(0,rnd(0,6.28),0));const m=new THREE.Matrix4().compose(P3.set(x,y,z),QQ,S3.set(s,s,s));TL.push({x,z,m});
   const pine=zoneW(x,z).high>.3||A.id==='tundra'||Math.random()<.6;(pine?PL:LL).push({x,z,m,c:pine?new THREE.Color().setHSL(rnd(.26,.33),rnd(.35,.5),rnd(.18,.26)):new THREE.Color().setHSL(rnd(.2,.3),rnd(.4,.55),rnd(.22,.32))});
-  if(r<R)obstacles.push({x,z,r:.35*s,b:4});n++;}}
+  if(r<R)obstacles.push({x,z,r:.35*s,b:4,climb:1,h:3.8+s*1.4});n++;}}
  if(TL.length)chunked(trunkGeo,barkMat,TL,{shadow:true,recv:true});if(PL.length)chunked(pineGeo,pineMat,PL,{shadow:true});if(LL.length)chunked(leafGeo,leafMat,LL,{shadow:true});
  // rocks / mesas / urban rubble
  const nRocks=Math.floor(QL.rocks*(A.rockMul||1));
@@ -423,10 +462,10 @@ function rebuildArena(biomeId,seed){
  // ruins / city blocks
  {const colG=new THREE.CylinderGeometry(.7,.8,1,10),wallG=new THREE.BoxGeometry(1,1,1),CL=[],WLs=[];
   if(A.id==='urban'){for(let bx=-3;bx<=3;bx++)for(let bz=-3;bz<=3;bz++){if(Math.abs(bx)+Math.abs(bz)<1)continue;const cx=bx*28+rnd(-3,3),cz=bz*28+rnd(-3,3);if(Math.hypot(cx,cz)>R-20||Math.hypot(cx,cz)<28)continue;
-   for(let i=0;i<4;i++){const a=i/4*6.28+.2,x=cx+Math.cos(a)*8,z=cz+Math.sin(a)*8,hh=rnd(3,9),y=H(x,z);CL.push({x,z,m:new THREE.Matrix4().compose(P3.set(x,y+hh/2,z),QQ.identity(),S3.set(1.2,hh,1.2))});obstacles.push({x,z,r:1.1,b:1.4});}
-   for(let i=0;i<3;i++){const a=rnd(0,6.28),x=cx+Math.cos(a)*rnd(2,7),z=cz+Math.sin(a)*rnd(2,7),l=rnd(4,9),hh=rnd(1.5,4),y=H(x,z);WLs.push({x,z,m:new THREE.Matrix4().compose(P3.set(x,y+hh/2,z),QQ.setFromEuler(E.set(0,a,0)),S3.set(l,hh,.7))});obstacles.push({x,z,r:l*.35,b:1});}}}
-  else{for(let i=0;i<12;i++){const a=i/12*6.283,x=RUINS.x+Math.cos(a)*11,z=RUINS.z+Math.sin(a)*11,hh=Math.random()<.4?rnd(1,2.5):rnd(4.5,6.5),y=H(x,z);CL.push({x,z,m:new THREE.Matrix4().compose(P3.set(x,y+hh/2,z),QQ.identity(),S3.set(1,hh,1))});obstacles.push({x,z,r:.85,b:1.2});}
-   for(let i=0;i<6;i++){const a=rnd(0,6.28),x=RUINS.x+Math.cos(a)*rnd(3,8),z=RUINS.z+Math.sin(a)*rnd(3,8),l=rnd(3,6),hh=rnd(.8,2.2),y=H(x,z);WLs.push({x,z,m:new THREE.Matrix4().compose(P3.set(x,y+hh/2,z),QQ.setFromEuler(E.set(0,a,0)),S3.set(l,hh,.6))});obstacles.push({x,z,r:l*.4,b:1});}}
+   for(let i=0;i<4;i++){const a=i/4*6.28+.2,x=cx+Math.cos(a)*8,z=cz+Math.sin(a)*8,hh=rnd(3,9),y=H(x,z);CL.push({x,z,m:new THREE.Matrix4().compose(P3.set(x,y+hh/2,z),QQ.identity(),S3.set(1.2,hh,1.2))});obstacles.push({x,z,r:1.1,b:1.4,climb:1,h:hh});}
+   for(let i=0;i<3;i++){const a=rnd(0,6.28),x=cx+Math.cos(a)*rnd(2,7),z=cz+Math.sin(a)*rnd(2,7),l=rnd(4,9),hh=rnd(1.5,4),y=H(x,z);WLs.push({x,z,m:new THREE.Matrix4().compose(P3.set(x,y+hh/2,z),QQ.setFromEuler(E.set(0,a,0)),S3.set(l,hh,.7))});obstacles.push({x,z,r:l*.35,b:1,climb:1,h:hh});}}}
+  else{for(let i=0;i<12;i++){const a=i/12*6.283,x=RUINS.x+Math.cos(a)*11,z=RUINS.z+Math.sin(a)*11,hh=Math.random()<.4?rnd(1,2.5):rnd(4.5,6.5),y=H(x,z);CL.push({x,z,m:new THREE.Matrix4().compose(P3.set(x,y+hh/2,z),QQ.identity(),S3.set(1,hh,1))});obstacles.push({x,z,r:.85,b:1.2,climb:1,h:hh});}
+   for(let i=0;i<6;i++){const a=rnd(0,6.28),x=RUINS.x+Math.cos(a)*rnd(3,8),z=RUINS.z+Math.sin(a)*rnd(3,8),l=rnd(3,6),hh=rnd(.8,2.2),y=H(x,z);WLs.push({x,z,m:new THREE.Matrix4().compose(P3.set(x,y+hh/2,z),QQ.setFromEuler(E.set(0,a,0)),S3.set(l,hh,.6))});obstacles.push({x,z,r:l*.4,b:1,climb:1,h:hh});}}
   if(CL.length)chunked(colG,stoneMat,CL,{shadow:true,recv:true});if(WLs.length)chunked(wallG,stoneMat,WLs,{shadow:true,recv:true});}
  buildGrid();
  // grass / scrub
@@ -497,7 +536,7 @@ let ents=[],player=null,zoneR=R,time=0,running=false,camMode=isTouch?'third':'fi
 const dayLen=150,GRACE=15,STORM_DUR=600,STORM_MIN=22;let STORM_START=40;
 const PERS={spar:{aggr:.12,caution:.7,loot:.4},career:{aggr:.9,caution:.25,loot:.7},hunter:{aggr:.6,caution:.45,loot:.5},scavenger:{aggr:.35,caution:.55,loot:1},hider:{aggr:.15,caution:.9,loot:.35}};
 function makeEnt(cfg,isPlayer){const fig=makeFigure(cfg.look);scene.add(fig);
- const e={name:cfg.name,d:cfg.d,fig,isPlayer,isHuman:!!(isPlayer||cfg.remote),isRemote:!!cfg.remote,conn:cfg.conn,look:cfg.look,hp:cfg.hp,maxhp:cfg.hp,spd:cfg.spd,str:cfg.str,stl:cfg.stl,hunger:100,thirst:100,weapon:cfg.weapon||'fists',ammo:(WEAPONS[cfg.weapon||'fists']&&WEAPONS[cfg.weapon||'fists'].ammoN)||0,x:0,z:0,y:0,vy:0,dir:0,cd:0,alive:true,swing:0,flash:0,think:0,tx:0,tz:0,target:null,speed:0,deadT:0,blocking:false,blockHeld:false,
+ const e={name:cfg.name,d:cfg.d,fig,isPlayer,isHuman:!!(isPlayer||cfg.remote),isRemote:!!cfg.remote,conn:cfg.conn,look:cfg.look,hp:cfg.hp,maxhp:cfg.hp,spd:cfg.spd,str:cfg.str,stl:cfg.stl,hunger:100,thirst:100,weapon:cfg.weapon||'fists',ammo:(WEAPONS[cfg.weapon||'fists']&&WEAPONS[cfg.weapon||'fists'].ammoN)||0,x:0,z:0,y:0,vy:0,dir:0,cd:0,alive:true,swing:0,flash:0,think:0,tx:0,tz:0,target:null,speed:0,deadT:0,blocking:false,blockHeld:false,climbStam:100,coyote:0,jumpCd:0,climbCd:0,climbing:null,grounded:true,
   pers:cfg.pers,P:PERS[cfg.pers]||PERS.hunter,ally:cfg.ally||0,state:'loot',mem:new Map(),windup:0,recover:0,strafe:Math.random()<.5?1:-1,strafeT:0,stuckT:0,detour:0,dx:0,dz:0,noise:0,hiding:false,lastX:0,lastZ:0,checkT:0,ambushSpot:null,kills:0};
  if(!isPlayer&&!cfg.noTag)e.tag=makeTag(e);if(e.weapon!=='fists')giveWeaponMesh(fig,e.weapon);return e;}
 function aiLook(excl){const pool=AI_MODELS.filter(m=>!excl.includes(m));return {model:pick(pool),scale:rnd(.88,1.12),cloth:new THREE.Color().setHSL(Math.random(),rnd(.35,.75),rnd(.25,.55)).getHex(),skin:pick(SKINS),hair:new THREE.Color().setHSL(rnd(.02,.12),rnd(.3,.7),rnd(.08,.6)).getHex(),acc:pick(['none','backpack','quiver','bedroll','cape','sash']),accC:new THREE.Color().setHSL(Math.random(),.5,.35).getHex()};}
@@ -508,7 +547,7 @@ function startGame(opts={}){
  if(opts.biome){rebuildArena(opts.biome,opts.seed|0);syncArenaSky();}
  else if(!opts.keepArena){const b=ARENAS[Math.floor(Math.random()*ARENAS.length)];rebuildArena(b.id,(Math.random()*0xffffffff)|0);syncArenaSky();}
  else if(!worldBuilt){rebuildArena(arenaId,ARENA_SEED);syncArenaSky();}
- clearWorld();spawnItems();zoneR=R;time=0;hazT=rnd(25,50);hazActive=false;STORM_START=40;deaths=[];allianceOn=true;winner=null;simMode=!!opts.sim;practice=!!opts.practice;survK=practice?.08:1;paused=false;homeActive=false;
+ clearWorld();spawnItems();zoneR=R;time=0;hazT=rnd(25,50);hazActive=false;STORM_START=40;deaths=[];allianceOn=true;winner=null;wasNight=isNight();stopAnthem();simMode=!!opts.sim;practice=!!opts.practice;survK=practice?.08:1;paused=false;homeActive=false;
  const pc=CHARS[sel];const pName=(custom.name||'').trim().slice(0,14)||pc.name;player=makeEnt({...pc,name:pName,look:charLook(pc),pers:'player'},true);ents.push(player);player.ghost=simMode;player.ally=TEAM;player.order='follow';player.netName=opts.myName||pName;player.ammo=(WEAPONS[player.weapon]&&WEAPONS[player.weapon].ammoN)||0;onlyOneAnnounced=false;sleeveMat.color.setHex((PALETTES[custom.palette]||PALETTES[0]).c);
  const usedD=[pc.d],models=[pc.model];
  (opts.remotes||[]).forEach((r,k)=>{const c=CHARS[r.char]||CHARS[0];const e=makeEnt({...c,name:r.name||c.name,look:{model:c.model,scale:c.scale,acc:c.acc||'none',accC:c.accC,skin:c.skin,cloth:c.c,hair:c.hair},pers:'player',remote:true,conn:r.conn},false);e.ally=100+k;e.order='follow';e.inp={};r.ent=e;ents.push(e);usedD.push(c.d);models.push(c.model);});
@@ -537,7 +576,7 @@ function spawnDummy(x,z){const g=new THREE.Group(),straw=new THREE.MeshStandardM
 $('start').onclick=()=>startGame({practice:gameMode==='practice'});$('retry').onclick=()=>startGame({practice:gameMode==='practice'});
 $('newchar').onclick=()=>{hideGameUI();$('end').classList.add('hidden');$('select').classList.remove('hidden');renderer.domElement.style.display='none';};
 loadP.then(()=>{makeThumbs();$('start').disabled=false;$('start').textContent='Enter the Arena';setPreview();$('homeStatus').textContent='Each match rolls a random biome & layout';modelsReady=true;onReady();}).catch(e=>{$('start').textContent='Failed to load models';console.error(e);});
-let msgT;const annLog=[];function announce(t){annLog.push(Math.round(time)+'s '+t);if(simMode)return;const m=$('msg');m.textContent=t;m.style.opacity=1;clearTimeout(msgT);msgT=setTimeout(()=>m.style.opacity=0,3000);}
+let msgT;const annLog=[];function announce(t){if(/night\s*(has\s+)?(fallen|falls|fall)|nightfall|dusk\s+has|darkness\s+falls/i.test(t||'')){annLog.push(Math.round(time)+'s [silenced night cue] '+t);return;}annLog.push(Math.round(time)+'s '+t);if(simMode)return;const m=$('msg');m.textContent=t;m.style.opacity=1;clearTimeout(msgT);msgT=setTimeout(()=>m.style.opacity=0,3000);}
 function alive(){return ents.filter(e=>e.alive&&!e.ghost&&!e.isDummy);}
 function updateCount(){if(!simMode)$('count').innerHTML=practice?`Practice: ${alive().length-1} sparring partners`:`Tributes remaining: ${alive().length}`;}
 function kill(e,by){if(!e.alive)return;e.alive=false;e.deadT=0;const u=e.fig.userData;u.oneShot=0;playOnce(e.fig,'death',1.2);u.oneShot=99;if(e.tag)e.tag.visible=false;
@@ -687,9 +726,41 @@ function steerDir(e,dx,dz){let l=Math.hypot(dx,dz)||1;dx/=l;dz/=l;let ax=0,az=0;
  for(const o of obsNear(e.x+dx*2,e.z+dz*2)){const rx=o.x-e.x,rz=o.z-e.z,ahead=rx*dx+rz*dz;if(ahead<=0||ahead>3.5)continue;const lat=rx*-dz+rz*dx,need=o.r+.75;if(Math.abs(lat)<need){const s=(lat>0?-1:1)*(1-ahead/3.5)*2.2;ax+=-dz*s;az+=dx*s;}}
  for(const o of ents){if(o===e||!o.alive)continue;const rx=e.x-o.x,rz=e.z-o.z,d=Math.hypot(rx,rz);if(d<1.1&&d>.01){ax+=rx/d*.8;az+=rz/d*.8;}}
  dx+=ax;dz+=az;l=Math.hypot(dx,dz)||1;return[dx/l,dz/l];}
-function collide(e){for(let i=-1;i<=1;i++)for(let j=-1;j<=1;j++)for(const o of (grid.get(gkey(Math.floor(e.x/GC)+i,Math.floor(e.z/GC)+j))||[])){const dx=e.x-o.x,dz=e.z-o.z,d2=dx*dx+dz*dz,r=o.r+.35;if(d2<r*r&&d2>1e-6){const d=Math.sqrt(d2);e.x=o.x+dx/d*r;e.z=o.z+dz/d*r;}}
+function collide(e){if(e.climbing)return;for(let i=-1;i<=1;i++)for(let j=-1;j<=1;j++)for(const o of (grid.get(gkey(Math.floor(e.x/GC)+i,Math.floor(e.z/GC)+j))||[])){const dx=e.x-o.x,dz=e.z-o.z,d2=dx*dx+dz*dz,r=o.r+.35;if(d2<r*r&&d2>1e-6){const d=Math.sqrt(d2);e.x=o.x+dx/d*r;e.z=o.z+dz/d*r;}}
  const d=Math.hypot(e.x,e.z);if(d>R-1){e.x*=(R-1)/d;e.z*=(R-1)/d;}}
-function move(e,mx,mz,dt){const ox=e.x,oz=e.z;let sp=4.6*e.spd*(inWater(e.x,e.z)?.5:1)*(e.hunger<=0||e.thirst<=0?.7:1);if(onIce(e.x,e.z)){e.iceVx=(e.iceVx||0)*0.94+mx*sp*dt*2.2;e.iceVz=(e.iceVz||0)*0.94+mz*sp*dt*2.2;e.x+=e.iceVx;e.z+=e.iceVz;}else{e.iceVx=e.iceVz=0;e.x+=mx*sp*dt;e.z+=mz*sp*dt;}collide(e);e.speed=Math.hypot(e.x-ox,e.z-oz)/dt;}
+function move(e,mx,mz,dt){if(e.climbing)return;const ox=e.x,oz=e.z;let sp=4.6*e.spd*(inWater(e.x,e.z)?.5:1)*(e.hunger<=0||e.thirst<=0?.7:1)*(e.grounded===false?.85:1);if(onIce(e.x,e.z)){e.iceVx=(e.iceVx||0)*0.94+mx*sp*dt*2.2;e.iceVz=(e.iceVz||0)*0.94+mz*sp*dt*2.2;e.x+=e.iceVx;e.z+=e.iceVz;}else{e.iceVx=e.iceVz=0;e.x+=mx*sp*dt;e.z+=mz*sp*dt;}collide(e);e.speed=Math.hypot(e.x-ox,e.z-oz)/dt;}
+function grounded(e){const gy=Math.max(H(e.x,e.z),WL-.9);return e.y<=gy+.08&&e.vy<=.15;}
+function climbable(o){return !!(o&&(o.climb||o.b===4||o.corn)&&((o.h||0)>1.1));}
+function findClimb(e,needFace){const fx=Math.sin(e.dir),fz=Math.cos(e.dir);let best=null,bd=2.4;
+ for(const o of obsNear(e.x+fx*.6,e.z+fz*.6)){if(!climbable(o))continue;const dx=o.x-e.x,dz=o.z-e.z,d=Math.hypot(dx,dz),reach=o.r+.95;if(d>reach||d>bd)continue;
+  if(needFace){const ahead=(dx*fx+dz*fz)/(d||1);if(ahead<.2)continue;}
+  bd=d;best=o;}return best;}
+function startClimb(e,o){if(!o||e.climbStam<(e.isHuman?12:8))return false;const dx=e.x-o.x,dz=e.z-o.z,d=Math.hypot(dx,dz)||1;
+ const hold=o.r+.42;e.x=o.x+dx/d*hold;e.z=o.z+dz/d*hold;e.climbing={o,base:Math.max(H(e.x,e.z),e.y),maxH:Math.min(o.h||3.5,e.isHuman?7.5:2.8),stam:e.climbStam};e.vy=0;e.grounded=false;
+ if(e.isPlayer&&!simMode){announce('Climbing — move up/down, JUMP to drop');tone(260,.08,'triangle',.1,180);}return true;}
+function endClimb(e,push){if(!e.climbing)return;const o=e.climbing.o;e.climbStam=e.climbing.stam;e.climbing=null;e.climbCd=.55;
+ if(push&&o){const dx=e.x-o.x,dz=e.z-o.z,d=Math.hypot(dx,dz)||1;e.x+=dx/d*.55;e.z+=dz/d*.55;e.vy=1.6;}
+ collide(e);}
+function stepClimb(e,mx,mz,dt){const C=e.climbing;if(!C)return;const o=C.o;C.stam-=dt*(e.isHuman?9:14);e.climbStam=C.stam;
+ if(C.stam<=0||!e.alive){endClimb(e,true);return;}
+ // stick to surface
+ const dx=e.x-o.x,dz=e.z-o.z,d=Math.hypot(dx,dz)||1,hold=o.r+.42;e.x=o.x+dx/d*hold;e.z=o.z+dz/d*hold;
+ // forward stick = climb up, back = down; strafe slides around
+ const up=mz,slide=mx;const ang=Math.atan2(dx,dz)+slide*dt*1.6;
+ e.x=o.x+Math.sin(ang)*hold;e.z=o.z+Math.cos(ang)*hold;
+ e.y=Math.min(C.base+C.maxH, Math.max(C.base+.1, e.y+up*2.8*dt));const lo=C.base+.15,hi=C.base+C.maxH-.05;
+ if(e.y>=hi-.02&&up>.25){endClimb(e,true);e.y=hi+.35;e.vy=1.2;}
+ if(e.y<=lo&&up<-.2)endClimb(e,true);
+ e.vy=0;e.speed=Math.abs(up)*2.5+Math.abs(slide)*1.2;e.dir=Math.atan2(o.x-e.x,o.z-e.z); // face wall
+ if(!simMode&&e.fig)setAnim(e.fig,Math.abs(up)>.1||Math.abs(slide)>.1?'walk':'idle',1.1);}
+function doJump(e){if(!e||!e.alive)return false;
+ if(e.climbing){endClimb(e,true);if(!simMode&&e.fig)playOnce(e.fig,'punch',.35);return true;}
+ const onG=grounded(e)||(e.coyote||0)>0;if(!onG||(e.jumpCd||0)>0){
+  // try start climb if facing a wall/tree
+  const o=findClimb(e,true);if(o&&(e.y<=Math.max(H(e.x,e.z),WL-.9)+1.2))return startClimb(e,o);
+  return false;}
+ e.vy=7.6;e.jumpCd=.38;e.coyote=0;e.grounded=false;
+ if(!simMode&&e.fig)playOnce(e.fig,'punch',.32);if(e.isPlayer)tone(300,.05,'square',.06,140);return true;}
 function face(e,want,dt,k=8){let dd=want-e.dir;dd=Math.atan2(Math.sin(dd),Math.cos(dd));e.dir+=dd*Math.min(1,dt*k);}
 function aiAct(e,dt){
  const t=e.target;e.strafeT-=dt;if(e.strafeT<=0){e.strafeT=rnd(1.2,2.8);if(Math.random()<.5)e.strafe*=-1;}
@@ -706,7 +777,7 @@ function aiAct(e,dt){
  const dx=e.tx-e.x,dz=e.tz-e.z,d=Math.hypot(dx,dz);
  if(e.detour>0){e.detour-=dt;const ddx=e.dx-e.x,ddz=e.dz-e.z,l=Math.hypot(ddx,ddz)||1;face(e,Math.atan2(ddx,ddz),dt);move(e,ddx/l*.8,ddz/l*.8,dt);return;}
  if(d>1.2&&e.pace>0){const [sx,sz]=steerDir(e,dx,dz);face(e,Math.atan2(sx,sz),dt);move(e,sx*e.pace,sz*e.pace,dt);e.wantMove=true;}else e.wantMove=false;
- e.checkT+=dt;if(e.checkT>1.5){if(e.wantMove&&Math.hypot(e.x-e.lastX,e.z-e.lastZ)<1){e.stuck=(e.stuck||0)+1;const a=Math.atan2(dz,dx)+(Math.random()<.5?1.7:-1.7);e.dx=e.x+Math.cos(a)*6;e.dz=e.z+Math.sin(a)*6;e.detour=1.3;}e.checkT=0;e.lastX=e.x;e.lastZ=e.z;}}
+ e.checkT+=dt;if(e.checkT>1.5){if(e.wantMove&&Math.hypot(e.x-e.lastX,e.z-e.lastZ)<1){e.stuck=(e.stuck||0)+1;const o=findClimb(e,false);if(o&&(o.h||0)<2.8&&!e.climbing&&Math.random()<.55){startClimb(e,o);e._cmz=1;e._cmx=0;}else{const a=Math.atan2(dz,dx)+(Math.random()<.5?1.7:-1.7);e.dx=e.x+Math.cos(a)*6;e.dz=e.z+Math.sin(a)*6;e.detour=1.3;}}e.checkT=0;e.lastX=e.x;e.lastZ=e.z;}}
 // ---------- per-entity update ----------
 function updateEnt(e,dt){
  if(!e.alive||e.ghost)return;e.cd-=dt;e.swing=Math.max(0,e.swing-dt);e.flash=Math.max(0,e.flash-dt);e.noise=Math.max(0,e.noise-dt*20);
@@ -725,13 +796,19 @@ function updateEnt(e,dt){
  if(e.isPlayer){e.blocking=!!(blkHeld||keys.ShiftLeft||keys.ShiftRight);e.blockHeld=e.blocking;
   let mx=(keys.KeyD?1:0)-(keys.KeyA?1:0)+moveX,mz=(keys.KeyW||keys.ArrowUp?1:0)-(keys.KeyS||keys.ArrowDown?1:0)+moveY;
   if(keys.ArrowLeft)yaw+=dt*2;if(keys.ArrowRight)yaw-=dt*2;const l=Math.hypot(mx,mz);if(l>1){mx/=l;mz/=l;}
-  e.dir=yaw+Math.PI;const fx=Math.sin(e.dir),fz=Math.cos(e.dir),rx=-fz,rz=fx;
-  if(l>.05){move(e,fx*mz+rx*mx,fz*mz+rz*mx,dt);tutEvent('move');}if(atkHeld&&!e.blocking)attack(e);}
- else if(e.isRemote){const I=e.inp||{};e.blocking=!!I.block;e.blockHeld=e.blocking;let mx=I.mx||0,mz=I.mz||0;const l=Math.hypot(mx,mz);if(l>1){mx/=l;mz/=l;}e.dir=(I.yaw||0)+Math.PI;const fx=Math.sin(e.dir),fz=Math.cos(e.dir),rx=-fz,rz=fx;if(l>.05)move(e,fx*mz+rx*mx,fz*mz+rz*mx,dt);if(I.atk&&!e.blocking)attack(e);
-  e.seen=e.seen||{};for(const k of ['jump','use','offer']){if((I[k]||0)!==(e.seen[k]||0)){e.seen[k]=I[k];if(k==='jump'&&e.vy===0)e.vy=6;if(k==='use')pickup(e);if(k==='offer')offerAlly(null,undefined,e);}}}
- else{e.think-=dt;if(e.think<=0){const dp=player&&!player.ghost?Math.hypot(e.x-player.x,e.z-player.z):0;e.think=(dp<60?rnd(.25,.4):dp<140?rnd(.5,.7):rnd(.9,1.2));aiThink(e);}aiAct(e,dt);}
+  e._cmx=mx;e._cmz=mz;e.dir=yaw+Math.PI;const fx=Math.sin(e.dir),fz=Math.cos(e.dir),rx=-fz,rz=fx;
+  if(e.climbing){/* stick move handled in stepClimb */}else if(l>.05){move(e,fx*mz+rx*mx,fz*mz+rz*mx,dt);tutEvent('move');}if(atkHeld&&!e.blocking&&!e.climbing)attack(e);}
+ else if(e.isRemote){const I=e.inp||{};e.blocking=!!I.block;e.blockHeld=e.blocking;let mx=I.mx||0,mz=I.mz||0;const l=Math.hypot(mx,mz);if(l>1){mx/=l;mz/=l;}e._cmx=mx;e._cmz=mz;e.dir=(I.yaw||0)+Math.PI;const fx=Math.sin(e.dir),fz=Math.cos(e.dir),rx=-fz,rz=fx;if(!e.climbing&&l>.05)move(e,fx*mz+rx*mx,fz*mz+rz*mx,dt);if(I.atk&&!e.blocking&&!e.climbing)attack(e);
+  e.seen=e.seen||{};for(const k of ['jump','use','offer']){if((I[k]||0)!==(e.seen[k]||0)){e.seen[k]=I[k];if(k==='jump')doJump(e);if(k==='use')pickup(e);if(k==='offer')offerAlly(null,undefined,e);}}}
+ else if(e.climbing){e._cmz=1;e._cmx=0;}else{e.think-=dt;if(e.think<=0){const dp=player&&!player.ghost?Math.hypot(e.x-player.x,e.z-player.z):0;e.think=(dp<60?rnd(.25,.4):dp<140?rnd(.5,.7):rnd(.9,1.2));aiThink(e);}aiAct(e,dt);}
  if(e.speed>3.6)e.noise=Math.max(e.noise,15);else if(e.speed>.4)e.noise=Math.max(e.noise,6);
- const gy=Math.max(H(e.x,e.z),WL-.9);e.vy-=18*dt;e.y+=e.vy*dt;if(e.y<=gy){e.y=gy;e.vy=0;}
+ e.jumpCd=Math.max(0,(e.jumpCd||0)-dt);e.climbCd=Math.max(0,(e.climbCd||0)-dt);
+ if(!e.climbing)e.climbStam=Math.min(100,(e.climbStam||100)+dt*14);
+ if(e.climbing){stepClimb(e,e._cmx||0,e._cmz||0,dt);}
+ else{const gy=Math.max(H(e.x,e.z),WL-.9);const wasG=e.grounded;e.vy-=18*dt;e.y+=e.vy*dt;
+  if(e.y<=gy){e.y=gy;e.vy=0;e.grounded=true;e.coyote=.14;}else{e.grounded=false;e.coyote=Math.max(0,(e.coyote||0)-dt);}
+  // auto-grab ledge while rising/falling next to climbable
+  if(!e.grounded&&e.vy<1.5&&!(e.climbCd>0)&&(e.isHuman||e.isPlayer)){const o=findClimb(e,true);if(o&&e.y>gy+.4&&e.y<gy+(o.h||3)*.85){const d=Math.hypot(e.x-o.x,e.z-o.z);if(d<o.r+1.05&&d>o.r*.3)startClimb(e,o);}}}
  e.fig.position.set(e.x,e.y,e.z);e.fig.rotation.y=e.dir;}
 let frameNo=0;
 function animateFig(e,dt){const f=e.fig,u=f.userData;if(e.isDummy){for(const m of u.mats)m.emissive.setRGB(e.flash>0?.6:0,0,0);return;}
@@ -740,7 +817,7 @@ function animateFig(e,dt){const f=e.fig,u=f.userData;if(e.isDummy){for(const m o
  if(e.tag)e.tag.visible=!e.isPlayer&&dist<22&&f.visible;
  if(!f.visible&&!e.isPlayer)return;
  if(u.oneShot>0){u.oneShot-=dt;if(u.oneShot<=0){u.oneShot=0;endOneShot(f);}}
- const s=e.speed;if(s<.4)setAnim(f,'idle');else if(s<3.6)setAnim(f,'walk',Math.max(.6,s/2.2));else setAnim(f,'run',s/5);
+ const s=e.speed;if(e.climbing)setAnim(f,s>.2?'walk':'idle',1.15);else if(!e.grounded&&(e.coyote||0)<=0)setAnim(f,'run',.7);else if(s<.4)setAnim(f,'idle');else if(s<3.6)setAnim(f,'walk',Math.max(.6,s/2.2));else setAnim(f,'run',s/5);
  u.acc+=dt;const every=dist>60?3:dist>30?2:1;if(e.isPlayer||frameNo%every===0){u.mixer.update(u.acc);u.acc=0;}
  const fl=e.flash>0;for(const m of u.mats)m.emissive.setRGB(fl?.6:0,0,0);}
 const STORM_SPEED=(R-STORM_MIN)/STORM_DUR;
@@ -749,7 +826,7 @@ function hazTick(dt){if(practice||simMode)return;hazT-=dt;
  else if(arenaId==='tundra'){if(hazT<=0){if(!hazActive&&isNight()&&Math.random()<.4){hazActive=true;hazT=rnd(15,28);annAll('❄ Blizzard rolling in!');}else if(hazActive){hazActive=false;hazT=rnd(35,70);annAll('The blizzard eases.');}else hazT=rnd(25,50);}}
  else hazActive=false;}
 function stormR(t){if(practice)return R;const st=STORM_START+stormJitter;return THREE.MathUtils.clamp(R-(t-st)*STORM_SPEED,STORM_MIN,R);}
-function stepWorld(dt){time+=dt;allyTick(dt);hazTick(dt);zoneR=stormR(time);if(Math.abs(time-(STORM_START+stormJitter))<dt*.6)announce('The firestorm is closing in!');for(const e of ents)updateEnt(e,dt);stepProjs(dt);animalsStep(dt);campsStep(dt);}
+function stepWorld(dt){time+=dt;nightCycle();allyTick(dt);hazTick(dt);zoneR=stormR(time);if(Math.abs(time-(STORM_START+stormJitter))<dt*.6)announce('The firestorm is closing in!');for(const e of ents)updateEnt(e,dt);stepProjs(dt);animalsStep(dt);campsStep(dt);}
 
 // ---------- minimap ----------
 const mm=$('minimap'),mx=mm.getContext('2d'),MS=240;let mk=MS/2/(R+8);
@@ -806,7 +883,7 @@ function loop(){requestAnimationFrame(loop);const dt=Math.min(clock.getDelta(),.
  hudT-=dt;if(hudT<=0&&player){hudT=.2;$('hp').style.width=Math.max(0,player.hp/player.maxhp*100)+'%';$('hu').style.width=player.hunger+'%';$('th').style.width=player.thirst+'%';
   $('weap').textContent='Weapon: '+WEAPONS[player.weapon].n+(player.ammo?` · ${player.ammo}`:'')+(player.blocking?' · 🛡':'');$('inv').textContent=`🪵 Wood ${player.wood||0}  ·  🍖 Raw meat ${player.meat||0}`;$('dayl').textContent=`${practice?'Practice · ':''}${arena?arena.tag+' ':''}#${arenaCode(ARENA_SEED)} · Day ${Math.floor(time/dayLen)+1} · ${isNight()?'Night 🌙':'Day ☀'}${hazActive?(arenaId==='desert'?' · 🌪':arenaId==='tundra'?' · ❄':''):''} · ${Math.round(fpsNow)} fps${NET.role==='client'?` · ping ${NET.ping|0}ms`:NET.role==='host'?` · hosting ${NET.conns.length}`:''}`;
   $('zonename').textContent=zoneName(player.x,player.z);drawMinimap();
-  let near=items.some(it=>Math.hypot(it.x-player.x,it.z-player.z)<2.6);$('hint').textContent=running&&near?(isTouch?'Tap GRAB to pick up':'Press E to pick up'):running&&nearWater(player)?(isTouch?'Tap GRAB to drink':'Press E to drink'):(!isTouch&&running&&document.pointerLockElement!==cv?'Click to lock mouse':'');updateAllyUI();}
+  let near=items.some(it=>Math.hypot(it.x-player.x,it.z-player.z)<2.6);const climbP=running&&player&&!player.climbing&&findClimb(player,true);$('hint').textContent=player&&player.climbing?(isTouch?'Stick up/down to climb · JUMP to drop':'W/S climb · Space to drop'):climbP?(isTouch?'JUMP to climb':'Space / JUMP to climb'):running&&near?(isTouch?'Tap GRAB to pick up':'Press E to pick up'):running&&nearWater(player)?(isTouch?'Tap GRAB to drink':'Press E to drink'):(!isTouch&&running&&document.pointerLockElement!==cv?'Click to lock mouse':'');updateAllyUI();}
  for(const it of items)if(it.type in WEAPONS)it.m.rotation.y+=dt*.8;
  if(composer)composer.render();else renderer.render(scene,camera);
  fpsN++;const nowT=performance.now()/1000;if(!fpsT)fpsT=nowT;if(nowT-fpsT>=2){fpsNow=fpsN/(nowT-fpsT);fpsLog.push(fpsNow);fpsT=nowT;fpsN=0;
@@ -917,14 +994,14 @@ function togglePause(){if(!running&&!paused)return;paused=!paused;$('pauseMenu')
 {const pb=$('pauseBtn');const f=ev=>{ev.preventDefault();ev.stopPropagation();togglePause();};pb.addEventListener('touchstart',f,{passive:false});pb.addEventListener('click',f);}
 $('pResume').onclick=()=>togglePause();$('pQuit').onclick=()=>{netClose();showHome();};
 const TUT=[['move','Move: '+(isTouch?'drag the left joystick':'W A S D')],['look','Look around: '+(isTouch?'drag the right joystick':'move the mouse (click to lock it)')],['hit','Attack: '+(isTouch?'tap ATK':'left click')+' — hit a straw dummy to the east'],
- ['jump','Jump: '+(isTouch?'tap JUMP':'Space')],['grab','Grab: '+(isTouch?'tap GRAB':'press E')+' near weapons and food, or at water to drink'],['cam','Camera: '+(isTouch?'tap CAM':'press V')+' to switch first/third person'],
+ ['jump','Jump: '+(isTouch?'tap JUMP':'Space')+' — near a tree, rock, or wall, JUMP starts a climb'],['grab','Grab: '+(isTouch?'tap GRAB':'press E')+' near weapons and food, or at water to drink'],['cam','Camera: '+(isTouch?'tap CAM':'press V')+' to switch first/third person'],
  ['ally','Allies: walk up to a sparring tribute and '+(isTouch?'tap 🤝 ALLY':'press F')+'. Give orders in the Allies panel'+(isTouch?'':' (1/2/3)')],['map','Minimap (top right): white arrow = you, gold = Cornucopia, red ring = firestorm, green = allies. Pause with II'+(isTouch?'':' or P')+'.']];
 let tutI=-1;function startTutorial(){tutI=0;showTut();}
 function showTut(){if(tutI<0||tutI>=TUT.length){$('tut').classList.add('hidden');tutI=-1;return;}$('tut').classList.remove('hidden');$('tutText').innerHTML=`<b>Step ${tutI+1}/${TUT.length}</b><br>${TUT[tutI][1]}`;$('tutNext').textContent=tutI===TUT.length-1?'Done':'Next';}
 function tutEvent(k){if(tutI>=0&&TUT[tutI][0]===k){tutI++;setTimeout(showTut,400);}}
 $('tutNext').onclick=()=>{tutI++;showTut();};$('tutSkip').onclick=()=>{tutI=-1;showTut();};
 function cmdAttack(){if(NET.role==='client'){NET.inp.atkUntil=performance.now()+150;return;}attack(player);}
-function cmdJump(){tutEvent('jump');if(NET.role==='client'){NET.inp.jump=(NET.inp.jump||0)+1;return;}if(player.vy===0)player.vy=6;}
+function cmdJump(){tutEvent('jump');if(NET.role==='client'){NET.inp.jump=(NET.inp.jump||0)+1;return;}doJump(player);}
 function cmdUse(){tutEvent('grab');if(NET.role==='client'){NET.inp.use=(NET.inp.use||0)+1;return;}pickup(player);}
 addEventListener('keydown',e=>{if(e.code==='KeyV')tutEvent('cam');});document.querySelector('#btns [data-b="cam"]').addEventListener('touchstart',()=>tutEvent('cam'));
 addEventListener('mousemove',()=>{if(document.pointerLockElement)tutEvent('look');});
@@ -994,6 +1071,7 @@ function clientOnData(m){
  if(m.t==='start')return clientStart(m);
  if(m.t==='s')return clientSnap(m);
  if(m.t==='ann'){announce(m.text);if(m.cannon)cannon();return;}
+ if(m.t==='anthem'){if(NET.role==='client')playAnthem(true);return;}
  if(m.t==='bub'){const e=ents[m.i];if(e)bubble(e,m.text,m.col);return;}
  if(m.t==='offer'){NET.pendingFrom=m.from;showHumanOffer({name:m.name});return;}
  if(m.t==='dead'){if(player){player.alive=false;camMode='third';setCam();endGame(false,m.by?{name:m.by}:null);}return;}
@@ -1005,7 +1083,7 @@ function clientStart(m){if(m.biome){rebuildArena(m.biome,m.seed|0);syncArenaSky(
  player=ents[m.me];NET.me=player;const ch=CHARS.findIndex(c=>c.model===player.look.model);sel=ch>=0?ch:0;sleeveMat.color.setHex(CHARS[sel].c);
  for(const e of ents)if(e.tag)refreshTag(e);
  showGameUI();setCam();announce(`${arena.tag} ${arena.name} · Arena #${arenaCode(ARENA_SEED)}`);}
-function clientSnap(m){time=m.time;zoneR=m.zr;NET.lastSnap=performance.now();
+function clientSnap(m){time=m.time;zoneR=m.zr;NET.lastSnap=performance.now();if(NET.role==="client")nightCycle();
  m.e.forEach((a,i)=>{const e=ents[i];if(!e)return;const [x,z,y,dir,hp,sp,al,wi,sw,ally,fl]=a;
   if(!e.net){e.x=x;e.z=z;e.y=y;e.dir=dir;}e.net={x,z,y,dir};e.hp=hp;e.speed=sp;if(fl)e.flash=.15;
   if(e.alive&&!al){e.alive=false;const u=e.fig.userData;u.oneShot=0;playOnce(e.fig,'death',1.2);u.oneShot=99;if(e.tag)e.tag.visible=false;}
@@ -1256,5 +1334,7 @@ Object.assign(window.__game,{
  yaw:(v)=>{if(v!==undefined)yaw=v;return yaw;},
  pitch:(v)=>{if(v!==undefined)pitch=v;return pitch;},
  projs:()=>projs.map(p=>({x:+p.x.toFixed(1),z:+p.z.toFixed(1),y:+p.y.toFixed(2),life:+p.life.toFixed(2)})),
+ playAnthem,stopAnthem,doJump,findClimb,startClimb,endClimb,grounded,anthemPlaying:()=>anthemOn,nightFlag:()=>wasNight,nightCycle,isNight,deaths:()=>deaths,cannon,
+ nearestClimbable:(kind)=>{let best=null,bd=1e9;for(const o of obstacles){if(!climbable(o))continue;if(kind==='tree'&&o.b!==4)continue;if(kind==='rock'&&(o.b===4||o.corn))continue;if(kind==='corn'&&!o.corn)continue;const d=Math.hypot(o.x-(player?player.x:0),o.z-(player?player.z:0));if(d<bd){bd=d;best=o;}}return best?{x:best.x,z:best.z,h:best.h,r:best.r,b:best.b,corn:!!best.corn,d:bd}:null},
 
 });
