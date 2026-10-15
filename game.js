@@ -263,8 +263,9 @@ function setWeaponModel(){if(fpWeapon)fpArms.remove(fpWeapon);fpWeapon=null;give
 
 // ---------- name tags ----------
 function makeTag(e){const c=document.createElement('canvas');c.width=256;c.height=64;const x=c.getContext('2d');x.font='bold 30px system-ui';x.textAlign='center';
- x.fillStyle='rgba(0,0,0,.45)';x.fillRect(20,8,216,48);x.fillStyle='#'+(DCOL[e.d]||0xffffff).toString(16).padStart(6,'0');x.fillRect(20,52,216,4);x.fillStyle=e.ally?'#ff8a8a':'#fff';x.fillText(`${e.name} · D${e.d}`,128,42);
+ x.fillStyle='rgba(0,0,0,.45)';x.fillRect(20,8,216,48);x.fillStyle='#'+(DCOL[e.d]||0xffffff).toString(16).padStart(6,'0');x.fillRect(20,52,216,4);x.fillStyle=e.ally===TEAM?'#5dff7a':e.ally?'#ff8a8a':'#fff';x.fillText(`${e.ally===TEAM?'★ ':''}${e.name} · D${e.d}`,128,42);
  const s=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(c),depthWrite:false,fog:false}));s.scale.set(1.6,.4,1);s.position.y=e.fig.userData.h+.45;s.visible=false;e.fig.add(s);return s;}
+function refreshTag(e){if(!e.tag)return;const v=e.tag.visible;e.fig.remove(e.tag);e.tag.material.map.dispose();e.tag=makeTag(e);e.tag.visible=v;}
 
 // ---------- entities ----------
 let ents=[],player=null,zoneR=R,time=0,running=false,camMode=isTouch?'third':'first',yaw=0,pitch=0,simMode=false,deaths=[],allianceOn=true,winner=null;
@@ -276,7 +277,7 @@ function makeEnt(cfg,isPlayer){const fig=makeFigure(cfg.look);scene.add(fig);
  if(!isPlayer)e.tag=makeTag(e);if(e.weapon!=='fists')giveWeaponMesh(fig,e.weapon);return e;}
 function startGame(opts={}){
  audio();ents.forEach(e=>scene.remove(e.fig));ents=[];spawnItems();zoneR=R;time=0;deaths=[];allianceOn=true;winner=null;simMode=!!opts.sim;
- const pc=CHARS[sel];player=makeEnt({...pc,look:{model:pc.model,scale:pc.scale,acc:pc.acc,accC:pc.accC,skin:pc.skin},pers:'player'},true);ents.push(player);player.ghost=simMode;sleeveMat.color.setHex(pc.c);
+ const pc=CHARS[sel];player=makeEnt({...pc,look:{model:pc.model,scale:pc.scale,acc:pc.acc,accC:pc.accC,skin:pc.skin},pers:'player'},true);ents.push(player);player.ghost=simMode;player.ally=TEAM;allyOrder='follow';onlyOneAnnounced=false;sleeveMat.color.setHex(pc.c);
  const others=[];for(let d=1;d<=12;d++)for(let k=0;k<2;k++)others.push(d);others.splice(others.indexOf(pc.d),1);
  const names=FIRST.slice().sort(()=>Math.random()-.5),pool=AI_MODELS.filter(m=>m!==pc.model);let mi=Math.floor(Math.random()*pool.length);
  others.forEach((d,i)=>{const career=d<=2||d===4;const pers=career?'career':pick(['hunter','scavenger','scavenger','hider','hider','hunter']);
@@ -292,7 +293,7 @@ function startGame(opts={}){
 $('start').onclick=()=>startGame();$('retry').onclick=()=>startGame();
 $('newchar').onclick=()=>{$('end').classList.add('hidden');$('select').classList.remove('hidden');renderer.domElement.style.display='none';$('mapwrap').classList.add('hidden');};
 loadP.then(()=>{makeThumbs();$('start').disabled=false;$('start').textContent='Enter the Arena';setPreview();}).catch(e=>{$('start').textContent='Failed to load models';console.error(e);});
-let msgT;function announce(t){if(simMode)return;const m=$('msg');m.textContent=t;m.style.opacity=1;clearTimeout(msgT);msgT=setTimeout(()=>m.style.opacity=0,3000);}
+let msgT;const annLog=[];function announce(t){annLog.push(Math.round(time)+'s '+t);if(simMode)return;const m=$('msg');m.textContent=t;m.style.opacity=1;clearTimeout(msgT);msgT=setTimeout(()=>m.style.opacity=0,3000);}
 function alive(){return ents.filter(e=>e.alive&&!e.ghost);}
 function updateCount(){if(!simMode)$('count').innerHTML=`Tributes remaining: ${alive().length}`;}
 function kill(e,by){if(!e.alive)return;e.alive=false;e.deadT=0;const u=e.fig.userData;u.oneShot=0;playOnce(e.fig,'death',1.2);u.oneShot=99;if(e.tag)e.tag.visible=false;
@@ -301,7 +302,8 @@ function kill(e,by){if(!e.alive)return;e.alive=false;e.deadT=0;const u=e.fig.use
  if(e.weapon!=='fists'){addItem(e.weapon,e.x+1,e.z);giveWeaponMesh(e.fig,null);}
  if(!simMode)cannon();updateCount();
  if(e.isPlayer){camMode='third';setCam();return endGame(false,by);}announce(`BOOM! ${e.name}, District ${e.d}, has fallen${by&&by.isPlayer?' (by you)':''}`);
- const al=alive();if(allianceOn&&al.length<=7){allianceOn=false;for(const t of ents)t.ally=0;announce("The Careers' alliance has broken!");}
+ const al=alive();if(allianceOn&&al.length<=7){allianceOn=false;for(const t of ents)if(t.ally===1){t.ally=0;refreshTag(t);}announce("The Careers' alliance has broken!");}
+ checkTeamEnd();
  if(simMode&&al.length===1){winner=al[0];running=false;}
  else if(player.alive&&!player.ghost&&al.length===1)endGame(true);}
 function endGame(win,by){running=false;if(document.pointerLockElement)document.exitPointerLock();
@@ -312,9 +314,9 @@ function endGame(win,by){running=false;if(document.pointerLockElement)document.e
 function attack(a){if(a.cd>0||!a.alive)return;const w=WEAPONS[a.weapon];a.cd=w.cd;a.swing=.3;a.noise=22;
  if(!simMode)playOnce(a.fig,a.weapon==='fists'?'punch':'slash',Math.max(.35,w.cd*.9));if(a.isPlayer)tone(220,.08,'square',.08,110);
  const fx=Math.sin(a.dir),fz=Math.cos(a.dir);let best=null,bd=1e9;
- for(const e of ents){if(e===a||!e.alive||e.ghost)continue;const dx=e.x-a.x,dz=e.z-a.z,d=Math.hypot(dx,dz);if(d>w.rng+.4)continue;if((dx*fx+dz*fz)/(d||1)<.4)continue;if(d<bd){bd=d;best=e;}}
+ for(const e of ents){if(e===a||!e.alive||e.ghost||(a.ally&&e.ally===a.ally))continue;const dx=e.x-a.x,dz=e.z-a.z,d=Math.hypot(dx,dz);if(d>w.rng+.4)continue;if((dx*fx+dz*fz)/(d||1)<.4)continue;if(d<bd){bd=d;best=e;}}
  if(best){const dmg=w.dmg*a.str*rnd(.85,1.15)*(best.isPlayer?.55:1)*(a.ambushBonus?1.6:1);a.ambushBonus=false;best.hp-=dmg;best.flash=.2;best.x+=fx*.6;best.z+=fz*.6;
-  if(!best.isPlayer){remember(best,a,true);if(best.state!=='flee')best.target=a;}if(best.isPlayer||a.isPlayer)tone(140,.12,'sawtooth',.15,60);if(best.hp<=0)kill(best,a);}}
+  if(a.isPlayer){player.lastHit=best;player.lastHitT=time;best.hitByPlayer=(best.hitByPlayer||0)+1;}if(best.isPlayer&&a.ally!==TEAM){player.lastAttacker=a;player.lastAttackT=time;}if(!best.isPlayer){remember(best,a,true);if(best.state!=='flee')best.target=a;}if(best.isPlayer||a.isPlayer)tone(140,.12,'sawtooth',.15,60);if(best.hp<=0)kill(best,a);}}
 function nearWater(e){for(const[dx,dz]of[[0,0],[2,0],[-2,0],[0,2],[0,-2]])if(H(e.x+dx,e.z+dz)<WL)return true;return false;}
 function pickup(e){let best=null,bd=2.6;for(const it of items){const d=Math.hypot(it.x-e.x,it.z-e.z);if(d<bd){bd=d;best=it;}}
  if(best){scene.remove(best.m);items.splice(items.indexOf(best),1);const t=best.type;
@@ -328,7 +330,7 @@ function setCam(){if(player)player.fig.visible=camMode==='third'||!player.alive;
 
 // ---------- input ----------
 const keys={};let moveX=0,moveY=0;
-addEventListener('keydown',e=>{keys[e.code]=true;if(!running||simMode)return;if(e.code==='KeyE')pickup(player);if(e.code==='KeyV'){camMode=camMode==='first'?'third':'first';setCam();}if(e.code==='Space'&&player.vy===0)player.vy=6;});
+addEventListener('keydown',e=>{keys[e.code]=true;if(!running||simMode)return;if(e.code==='KeyF')offerAlly();if(e.code==='Digit1')setOrder('follow');if(e.code==='Digit2')setOrder('hold');if(e.code==='Digit3')setOrder('scavenge');if(e.code==='KeyE')pickup(player);if(e.code==='KeyV'){camMode=camMode==='first'?'third':'first';setCam();}if(e.code==='Space'&&player.vy===0)player.vy=6;});
 addEventListener('keyup',e=>keys[e.code]=false);
 const cv=renderer.domElement;
 cv.addEventListener('mousedown',()=>{if(!running||isTouch)return;if(document.pointerLockElement!==cv){cv.requestPointerLock?.();$('hint').textContent='';}else attack(player);});
@@ -357,7 +359,7 @@ document.querySelectorAll('#btns div').forEach(b=>{b.addEventListener('touchstar
 function isNight(){const p=(time/dayLen)%1;return p>.55&&p<.95;}
 function remember(e,o,share){if(o.ghost)return;e.mem.set(o,{x:o.x,z:o.z,t:time});if(share&&e.ally)for(const a of ents)if(a!==e&&a.alive&&a.ally===e.ally&&Math.hypot(a.x-e.x,a.z-e.z)<35)a.mem.set(o,{x:o.x,z:o.z,t:time});}
 function perceive(e){const fx=Math.sin(e.dir),fz=Math.cos(e.dir),night=isNight();
- for(const o of ents){if(o===e||!o.alive||o.ghost||(e.ally&&o.ally===e.ally))continue;const dx=o.x-e.x,dz=o.z-e.z,d=Math.hypot(dx,dz);if(d>50)continue;
+ for(const o of ents){if(o===e||!o.alive||o.ghost||(e.ally&&o.ally===e.ally)||(o.isPlayer&&e.peaceUntil>time))continue;const dx=o.x-e.x,dz=o.z-e.z,d=Math.hypot(dx,dz);if(d>50)continue;
   const sightR=(night?15:32)*(o.isPlayer?1.25-o.stl*.6:1-o.stl*.3)*(o.hiding?.5:1);
   const noiseR=o.noise*(o.isPlayer?1.2-o.stl*.7:1)*(night?1.25:1);
   if(d<noiseR||d<2.5){remember(e,o,true);continue;}
@@ -370,6 +372,7 @@ function nearestShore(e){let b=null,bd=1e9;for(const s of SHORE){if(Math.hypot(s
 function coverSpot(e){let b=null,bd=1e9;for(let i=0;i<8;i++){const a=rnd(0,6.28),r=rnd(4,18),x=e.x+Math.cos(a)*r,z=e.z+Math.sin(a)*r;if(Math.hypot(x,z)>zoneR-10||inWater(x,z))continue;const n=obsNear(x,z).length;const s=-n*3+r*.2;if(s<bd){bd=s;b=[x,z];}}return b||[e.x,e.z];}
 // ---------- AI: utility decision (staggered) ----------
 function aiThink(e){
+ if(e.ally===TEAM)return allyThink(e);
  const P=e.P,hpF=e.hp/e.maxhp,t=perceive(e),known=t?e.mem.get(t):null,dT=t?Math.hypot(known.x-e.x,known.z-e.z):1e9;
  const myP=power(e),thP=t?power(t):1,ratio=Math.min(2.5,Math.max(.25,myP/thP)),grace=time<GRACE;
  const U={};
@@ -454,7 +457,7 @@ function animateFig(e,dt){const f=e.fig,u=f.userData;
  const fl=e.flash>0;for(const m of u.mats)m.emissive.setRGB(fl?.6:0,0,0);}
 const STORM_SPEED=(R-STORM_MIN)/STORM_DUR;
 function stormR(t){return THREE.MathUtils.clamp(R-(t-STORM_START)*STORM_SPEED,STORM_MIN,R);}
-function stepWorld(dt){time+=dt;zoneR=stormR(time);if(Math.abs(time-STORM_START)<dt*.6)announce('The firestorm is closing in!');for(const e of ents)updateEnt(e,dt);}
+function stepWorld(dt){time+=dt;allyTick(dt);zoneR=stormR(time);if(Math.abs(time-STORM_START)<dt*.6)announce('The firestorm is closing in!');for(const e of ents)updateEnt(e,dt);}
 
 // ---------- minimap ----------
 const mm=$('minimap'),mx=mm.getContext('2d'),MS=240,mk=MS/2/(R+8);
@@ -469,6 +472,7 @@ function drawMinimap(){const c=MS/2;mx.clearRect(0,0,MS,MS);mx.drawImage(mmBg,0,
  mx.fillStyle='#ddd';mx.fillRect(c+RUINS.x*mk-4,c+RUINS.z*mk-4,8,8);
  for(const [x,z] of CACHES){mx.fillStyle='#c8964a';mx.fillRect(c+x*mk-3,c+z*mk-3,6,6);}
  if(player){const px=c+player.x*mk,pz=c+player.z*mk,d=player.dir;mx.save();mx.translate(px,pz);mx.rotate(-d+Math.PI);mx.fillStyle='#fff';mx.strokeStyle='#000';mx.lineWidth=2;mx.beginPath();mx.moveTo(0,-11);mx.lineTo(7,8);mx.lineTo(0,4);mx.lineTo(-7,8);mx.closePath();mx.fill();mx.stroke();mx.restore();}
+ for(const a of ents)if(a.alive&&a.ally===TEAM&&!a.isPlayer){mx.fillStyle='#4dff6a';mx.beginPath();mx.arc(c+a.x*mk,c+a.z*mk,6,0,7);mx.fill();}
  mx.fillStyle='#fff';mx.font='bold 22px system-ui';mx.textAlign='center';mx.fillText('N',c,22);}
 
 // ---------- loop ----------
@@ -500,7 +504,7 @@ function loop(){requestAnimationFrame(loop);const dt=Math.min(clock.getDelta(),.
  hudT-=dt;if(hudT<=0&&player){hudT=.2;$('hp').style.width=Math.max(0,player.hp/player.maxhp*100)+'%';$('hu').style.width=player.hunger+'%';$('th').style.width=player.thirst+'%';
   $('weap').textContent='Weapon: '+WEAPONS[player.weapon].n;$('dayl').textContent=`Day ${Math.floor(time/dayLen)+1} · ${isNight()?'Night 🌙':'Day ☀'} · ${Math.round(fpsNow)} fps`;
   $('zonename').textContent=zoneName(player.x,player.z);drawMinimap();
-  let near=items.some(it=>Math.hypot(it.x-player.x,it.z-player.z)<2.6);$('hint').textContent=running&&near?(isTouch?'Tap GRAB to pick up':'Press E to pick up'):running&&nearWater(player)?(isTouch?'Tap GRAB to drink':'Press E to drink'):(!isTouch&&running&&document.pointerLockElement!==cv?'Click to lock mouse':'');}
+  let near=items.some(it=>Math.hypot(it.x-player.x,it.z-player.z)<2.6);$('hint').textContent=running&&near?(isTouch?'Tap GRAB to pick up':'Press E to pick up'):running&&nearWater(player)?(isTouch?'Tap GRAB to drink':'Press E to drink'):(!isTouch&&running&&document.pointerLockElement!==cv?'Click to lock mouse':'');updateAllyUI();}
  for(const it of items)if(it.type in WEAPONS)it.m.rotation.y+=dt*.8;
  if(composer)composer.render();else renderer.render(scene,camera);
  fpsN++;const nowT=performance.now()/1000;if(!fpsT)fpsT=nowT;if(nowT-fpsT>=2){fpsNow=fpsN/(nowT-fpsT);fpsLog.push(fpsNow);fpsT=nowT;fpsN=0;
@@ -516,4 +520,63 @@ function runSim(maxSec=1200,dt=.1){startGame({sim:true});const stuckLog={};let t
  simMode=false;running=false;ents.forEach(e=>scene.remove(e.fig));ents=[];return r;}
 window.__game={setMove:(x,y)=>{moveX=x;moveY=y;},camDirs:()=>{const f=new THREE.Vector3();camera.getWorldDirection(f);f.y=0;f.normalize();return {f:[f.x,f.z],r:[-f.z,f.x]};},
  tp:(x,z,yw)=>{player.x=x;player.z=z;if(yw!==undefined)yaw=yw;},get player(){return player},get ents(){return ents},setCam:m=>{camMode=m;setCam();},get fps(){return fpsLog},quality:qName,get pr(){return pixelRatio},swing:()=>{player.swing=.3;},
- dbgWeap:()=>{const u=player.fig.userData;if(!u.weap)return 'none';player.fig.updateMatrixWorld(true);const b=new THREE.Box3().setFromObject(u.weap),ws=new THREE.Vector3();u.hand.getWorldScale(ws);return JSON.stringify({min:b.min.toArray().map(v=>v.toFixed(2)),max:b.max.toArray().map(v=>v.toFixed(2)),p:[player.x.toFixed(1),player.y.toFixed(2),player.z.toFixed(1)],ws:ws.toArray()});},runSim,setTime:t=>{time=t;},sel:i=>{sel=i;},chunks:()=>chunks.filter(c=>c.m.visible).length+'/'+chunks.length,counts:{obstacles:obstacles.length,shore:SHORE.length}};
+ dbgWeap:()=>{const u=player.fig.userData;if(!u.weap)return 'none';player.fig.updateMatrixWorld(true);const b=new THREE.Box3().setFromObject(u.weap),ws=new THREE.Vector3();u.hand.getWorldScale(ws);return JSON.stringify({min:b.min.toArray().map(v=>v.toFixed(2)),max:b.max.toArray().map(v=>v.toFixed(2)),p:[player.x.toFixed(1),player.y.toFixed(2),player.z.toFixed(1)],ws:ws.toArray()});},offerAlly:(e,force)=>offerAlly(e,force),allyChance:e=>allyChance(e),cand:()=>{const c=allyCandidate();return c?c.name:null},setOrder,get allies(){return teamAllies()},step:s=>{for(let t=0;t<s;t+=.05)stepWorld(.05);},kill:(e,by)=>kill(e,by),get announcements(){return annLog},runSim,setTime:t=>{time=t;},sel:i=>{sel=i;},chunks:()=>chunks.filter(c=>c.m.visible).length+'/'+chunks.length,counts:{obstacles:obstacles.length,shore:SHORE.length}};
+
+// ---------- player alliances ----------
+const TEAM=99,MAX_ALLIES=3;let allyOrder='follow',holdPos=null,onlyOneAnnounced=false,allyCand=null,shareT=0,betrayT=0;
+function teamAllies(){return ents.filter(e=>e.alive&&e.ally===TEAM&&!e.isPlayer);}
+function allyCandidate(){if(!player||!player.alive)return null;let best=null,bd=8;for(const e of ents){if(e.isPlayer||!e.alive||e.ally===TEAM)continue;const d=Math.hypot(e.x-player.x,e.z-player.z);if(d>=bd)continue;
+ if(e.target===player&&e.state==='hunt')continue;if(player.lastHit===e&&time-player.lastHitT<8)continue;
+ const fx=Math.sin(e.dir),fz=Math.cos(e.dir);if(d>5.5&&((player.x-e.x)*fx+(player.z-e.z)*fz)/d<.2)continue;if(!LOS(e.x,e.z,player.x,player.z))continue;bd=d;best=e;}
+ if(best){lastCand=best;lastCandT=time;}else if(lastCand&&lastCand.alive&&lastCand.ally!==TEAM&&time-lastCandT<2.5&&Math.hypot(lastCand.x-player.x,lastCand.z-player.z)<9)best=lastCand;return best;}
+let lastCand=null,lastCandT=0;
+function allyChance(e){const base={hider:.75,scavenger:.65,hunter:.18,career:.08}[e.pers]??.3;let c=base;
+ if(e.pers==='career'&&([1,2,4].includes(player.d)||power(player)>power(e)*1.2))c=.6;
+ if(player.weapon!=='fists')c+=.12;c+=Math.min(.2,player.kills*.06);c+=(player.hp/player.maxhp-.5)*.3;
+ const n=alive().length;if(n<=8)c-=.2;if(n<=5)c-=.3;if(e.hitByPlayer)c-=.6;if(e.ally===1&&allianceOn)c-=.15;
+ if(power(player)<power(e)*.5)c-=.1;return Math.max(0,Math.min(.95,c));}
+function bubble(e,text,col='#fff'){if(simMode)return;const c=document.createElement('canvas');c.width=320;c.height=72;const x=c.getContext('2d');x.fillStyle='rgba(255,255,255,.92)';x.beginPath();x.roundRect(6,4,308,52,14);x.fill();x.beginPath();x.moveTo(150,56);x.lineTo(160,70);x.lineTo(170,56);x.fill();
+ x.fillStyle=col;x.font='bold 28px system-ui';x.textAlign='center';x.fillText(text,160,40);const s=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(c),depthTest:false,fog:false}));s.scale.set(2.2,.5,1);s.position.y=e.fig.userData.h+1;e.fig.add(s);setTimeout(()=>{e.fig.remove(s);s.material.map.dispose();},2500);}
+function offerAlly(target,force){const e=target||allyCandidate();if(!e)return {ok:false,why:'nobody'};
+ if(teamAllies().length>=MAX_ALLIES){announce('You already have 3 allies.');return {ok:false,why:'max'};}
+ if(e.askCd>time){announce(`${e.name} is ignoring you for now.`);return {ok:false,why:'cooldown'};}
+ e.askCd=time+25;const ch=allyChance(e),roll=force??Math.random();
+ if(roll<ch){e.ally=TEAM;e.mem.delete(player);e.target=null;e.state='follow';e.peaceUntil=0;refreshTag(e);
+  const lines=['Deal.','Together, then.','I\'ve got your back.','Fine. Stay close.'];const l=pick(lines);bubble(e,l,'#187a2c');announce(`${e.name} (D${e.d}) joined you: "${l}"`);tone(520,.12,'triangle',.15,780);return {ok:true,chance:ch};}
+ const l=pick(['Not a chance.','Get lost.','I work alone.','Nice try.']);bubble(e,l,'#a01818');
+ const angry=Math.random()<e.P.aggr*.7;if(angry&&time>GRACE){remember(e,player);e.target=player;e.state='hunt';e.askCd=time+60;announce(`${e.name}: "${l}" — they turn on you!`);}else announce(`${e.name}: "${l}"`);
+ return {ok:false,why:'declined',chance:ch,angry};}
+function setOrder(o){allyOrder=o;if(o==='hold')holdPos=null;for(const a of teamAllies()){a.holdAt=o==='hold'?[a.x,a.z]:null;}announce('Allies: '+({follow:'Follow me',hold:'Hold here',scavenge:'Go scavenge'}[o]));updateAllyUI(true);}
+function dismissAlly(e){if(e.ally!==TEAM)return;e.ally=0;e.peaceUntil=time+90;e.mem.delete(player);e.state='patrol';const a=Math.atan2(e.z-player.z,e.x-player.x);e.tx=e.x+Math.cos(a)*40;e.tz=e.z+Math.sin(a)*40;refreshTag(e);bubble(e,'Good luck.');announce(`You parted ways with ${e.name}.`);updateAllyUI(true);}
+function betray(e,why){e.ally=0;remember(e,player);e.target=player;e.state='hunt';e.ambushBonus=true;refreshTag(e);bubble(e,'Sorry. Only one wins.','#a01818');announce(`${e.name} has betrayed you!${why?' ('+why+')':''}`);if(!simMode)tone(200,.4,'sawtooth',.2,90);updateAllyUI(true);}
+function checkTeamEnd(){if(!player||!player.alive||onlyOneAnnounced)return;const al=alive();if(al.length>1&&al.every(e=>e.ally===TEAM)){onlyOneAnnounced=true;for(const e of al)if(!e.isPlayer){e.ally=0;remember(e,player);e.target=player;e.state='hunt';refreshTag(e);}announce('Only one can win! Your alliance dissolves.');updateAllyUI(true);}}
+function allyTick(dt){if(!player||!player.alive||player.ghost)return;const team=teamAllies();if(!team.length)return;
+ shareT-=dt;if(shareT<=0){shareT=rnd(45,90);const a=pick(team);if(Math.hypot(a.x-player.x,a.z-player.z)<15){if(player.hunger<65&&a.hunger>55){player.hunger=Math.min(100,player.hunger+20);a.hunger-=10;announce(`${a.name} gave you berries`);}else if(player.thirst<65&&a.thirst>55){player.thirst=Math.min(100,player.thirst+20);a.thirst-=10;announce(`${a.name} shared some water`);}}}
+ betrayT-=dt;if(betrayT<=0){betrayT=10;const n=alive().length;for(const a of team){const traitor={career:.55,hunter:.5,scavenger:.35,hider:.2}[a.pers]??.3;let p=0;
+  if(n<=4)p=traitor;else if(n<=7)p=traitor*.12;if(a.hunger<15&&a.thirst<15)p+=.08;if(Math.random()<p){betray(a,n<=4?'only '+n+' left':'desperate');break;}}}
+ checkTeamEnd();}
+function allyThink(e){const P=e.P,hpF=e.hp/e.maxhp;perceive(e);
+ // threats: anyone attacking you or this ally, or whoever you just attacked
+ let threat=null,bd=26;for(const o of ents){if(!o.alive||o.ghost||o.ally===TEAM)continue;const d=Math.hypot(o.x-e.x,o.z-e.z);if(d>bd)continue;
+  if(o.target===player||o.target===e||(player.lastHit===o&&time-player.lastHitT<8)||(player.lastAttacker===o&&time-player.lastAttackT<8)){bd=d;threat=o;}}
+ e.hiding=false;const dp=Math.hypot(player.x-e.x,player.z-e.z);
+ if(threat&&time>GRACE&&hpF>.2){e.state='hunt';e.target=threat;remember(e,threat);e.tx=threat.x;e.tz=threat.z;e.pace=1;return;}
+ e.target=null;
+ if(e.thirst<30){e.state='drink';if(nearWater(e)){pickup(e);e.pace=0;}else{const s=nearestShore(e);if(s){e.tx=s[0];e.tz=s[1];}e.pace=.8;}return;}
+ if(e.hunger<30||allyOrder==='scavenge'){const it=nearestItem(e,i=>(i.type==='food'||i.type==='berries'||(i.type in WEAPONS&&WEAPONS[i.type].dmg>WEAPONS[e.weapon].dmg)),allyOrder==='scavenge'?45:30);
+  if(it&&Math.hypot(it.x-player.x,it.z-player.z)<60){e.state='forage';e.tx=it.x;e.tz=it.z;e.pace=.8;if(Math.hypot(it.x-e.x,it.z-e.z)<2)pickup(e);return;}}
+ if(allyOrder==='hold'){if(!e.holdAt)e.holdAt=[e.x,e.z];e.state='hold';e.tx=e.holdAt[0];e.tz=e.holdAt[1];e.pace=.6;return;}
+ // follow: sit behind-left/right of the player, out of the camera line
+ const idx=teamAllies().indexOf(e),side=[1,-1,0][idx]??1,ang=player.dir+Math.PI+side*.95,dist=idx===2?6:4.5;
+ e.state='follow';e.tx=player.x+Math.sin(ang)*dist;e.tz=player.z+Math.cos(ang)*dist;e.pace=dp>14?1:dp>6?.8:.5;}
+// ---------- alliance UI ----------
+let allyUIKey='';
+function updateAllyUI(force){if(simMode)return;const c=allyCandidate();allyCand=c;const ab=$('allyBtn');if(ab)ab.classList.toggle('hidden',!(running&&c&&teamAllies().length<MAX_ALLIES));
+ if(c&&running&&!isTouch&&teamAllies().length<MAX_ALLIES&&$('hint').textContent==='')$('hint').textContent=`Press F to offer ${c.name} an alliance`;
+ const team=teamAllies(),key=team.map(a=>a.name).join()+allyOrder;const panel=$('allies');panel.classList.toggle('hidden',!running||!team.length);
+ if(force||key!==allyUIKey){allyUIKey=key;panel.innerHTML=`<div class="ah">Allies</div>`+team.map(a=>`<div class="ar"><span>${a.name} D${a.d}</span><div class="ab"><i data-hp="${a.name}"></i></div><b data-dis="${a.name}">✕</b></div>`).join('')+
+  `<div class="ao">${['follow','hold','scavenge'].map((o,i)=>`<button data-o="${o}" class="${allyOrder===o?'on':''}">${['Follow','Hold','Scavenge'][i]}${isTouch?'':' ('+(i+1)+')'}</button>`).join('')}</div>`;
+  panel.querySelectorAll('[data-o]').forEach(b=>{const f=ev=>{ev.preventDefault();ev.stopPropagation();setOrder(b.dataset.o);};b.addEventListener('touchstart',f,{passive:false});b.addEventListener('click',f);});
+  panel.querySelectorAll('[data-dis]').forEach(b=>{const f=ev=>{ev.preventDefault();ev.stopPropagation();const a=teamAllies().find(t=>t.name===b.dataset.dis);if(a)dismissAlly(a);};b.addEventListener('touchstart',f,{passive:false});b.addEventListener('click',f);});}
+ for(const a of team){const i=panel.querySelector(`[data-hp="${a.name}"]`);if(i)i.style.width=Math.max(0,a.hp/a.maxhp*100)+'%';}}
+{const ab=$('allyBtn');const f=ev=>{ev.preventDefault();ev.stopPropagation();audio();if(running)offerAlly();};ab.addEventListener('touchstart',f,{passive:false});ab.addEventListener('mousedown',f);}
