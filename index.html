@@ -43,6 +43,13 @@ button.big{font-size:20px;padding:12px 28px;margin:6px;border:0;border-radius:10
 #allies{position:fixed;left:8px;top:calc(max(8px,env(safe-area-inset-top)) + 150px);z-index:7;background:#0008;border-radius:8px;padding:6px;font-size:12px;width:min(170px,44vw);pointer-events:auto}
 #allies .ah{font-weight:bold;color:#7f7;margin-bottom:3px}#allies .ar{display:flex;align-items:center;gap:4px;margin:3px 0}#allies .ar span{flex:0 0 auto;max-width:70px;overflow:hidden;white-space:nowrap}#allies .ab{flex:1;height:6px;background:#333;border-radius:3px;overflow:hidden}#allies .ab i{display:block;height:100%;background:#4c4}
 #allies b{color:#f88;cursor:pointer;padding:0 4px}#allies .ao{display:flex;gap:3px;margin-top:4px}#allies .ao button{flex:1;font-size:11px;padding:6px 2px;border-radius:5px;border:1px solid #6a6;background:#132;color:#fff}#allies .ao button.on{background:#3a6}
+#arena{overflow-y:auto;touch-action:pan-y}
+#arenaGrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;max-width:520px;width:100%;margin:8px 0}
+.acard{background:#1a2218cc;border:2px solid #556;border-radius:14px;padding:12px 10px;text-align:left;color:#eee;cursor:pointer;font:inherit}
+.acard.on{border-color:#f5b942;background:#2a3220}
+.acard .at{font-size:28px;line-height:1}.acard b{display:block;font-size:16px;margin:4px 0 2px}
+.acard small{display:block;opacity:.75;font-size:12px;line-height:1.3}.acard .diff{display:inline-block;margin-top:6px;font-size:11px;padding:2px 8px;border-radius:8px;background:#0006;border:1px solid #886}
+#arenaSeed{font-size:13px;opacity:.85;margin:6px 0}
 #home{background:linear-gradient(#0006,#000a)}
 button.mode{display:block;width:min(340px,86vw);margin:7px auto;padding:14px;font-size:22px}button.mode small{display:block;font-size:12px;font-weight:normal;opacity:.75}
 button.back{background:#444;color:#fff;font-size:15px;padding:8px 18px}
@@ -59,7 +66,7 @@ button.back{background:#444;color:#fff;font-size:15px;padding:8px 18px}
 <script type="importmap">{"imports":{"three":"https://unpkg.com/three@0.160.0/build/three.module.js","three/addons/":"https://unpkg.com/three@0.160.0/examples/jsm/"}}</script>
 </head><body>
 <div id="home" class="screen">
- <h1 style="font-size:clamp(34px,9vw,64px)">TRIBUTE ARENA</h1><div style="opacity:.85;margin-bottom:14px">Survive. Outlast. Be the last one standing.</div>
+ <h1 style="font-size:clamp(34px,9vw,64px)">TRIBUTE ARENA</h1><div style="opacity:.85;margin-bottom:14px">Survive. Outlast. Be the last one standing.<br><span style="font-size:12px;opacity:.7">Every match rolls a random arena biome & layout</span></div>
  <button class="big mode" id="mPractice">🎯 PRACTICE<small>Learn the controls, no pressure</small></button>
  <button class="big mode" id="mSolo">⚔️ SOLO<small>You vs 23 AI tributes</small></button>
  <button class="big mode" id="mOnline">🌐 ONLINE<small>Play with friends (2–6)</small></button>
@@ -70,6 +77,7 @@ button.back{background:#444;color:#fff;font-size:15px;padding:8px 18px}
  <h1>ONLINE</h1>
  <div class="row">Name <input id="oName" maxlength="14" placeholder="Your name"></div>
  <div id="oChars" class="row"></div>
+ <div id="oArenaRow" class="row" style="opacity:.75;font-size:12px;max-width:360px;text-align:center">🌲 Wilds · 🏜️ Desert · ❄️ Tundra · 🏙️ Urban — rolled at Start</div>
  <div class="row"><button class="big" id="oHost">Host game</button></div>
  <div class="row"><input id="oCode" maxlength="6" placeholder="CODE" style="text-transform:uppercase;width:110px"><button class="big" id="oJoin">Join</button></div>
  <div id="oStatus" style="min-height:20px;color:#f5b942"></div>
@@ -81,6 +89,7 @@ button.back{background:#444;color:#fff;font-size:15px;padding:8px 18px}
 <div id="tut" class="hidden"><div id="tutText"></div><div><button id="tutNext">Next</button><button id="tutSkip">Skip</button></div></div>
 <div id="offerBox" class="hidden"></div>
 <div id="pauseBtn" class="hidden">II</div>
+<div id="arena" class="screen hidden"><!-- reserved; matches auto-roll biome + seed --></div>
 <div id="select" class="screen hidden">
  <h1>TRIBUTE ARENA</h1><div style="font-size:13px;opacity:.8">Choose your tribute. Last one standing wins.</div>
  <canvas id="preview"></canvas>
