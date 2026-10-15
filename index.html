@@ -8,8 +8,8 @@ canvas{display:block}
 .screen{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(10,8,6,.92);z-index:20;padding:12px;text-align:center}
 .hidden{display:none!important}
 h1{margin:4px 0;font-size:clamp(26px,6vw,48px);color:#f5b942;letter-spacing:2px}
-#mapwrap{position:fixed;top:32px;right:8px;z-index:5;pointer-events:none;text-align:center;font-size:11px;text-shadow:0 1px 2px #000}
-#minimap{width:min(120px,28vw);height:min(120px,28vw);border-radius:50%;background:#0006;border:2px solid #fff5;pointer-events:auto;touch-action:manipulation;cursor:pointer}
+#mapwrap{position:fixed;top:52px;right:10px;z-index:5;pointer-events:none;text-align:center;font-size:11px;color:#f4f0e4;text-shadow:0 1px 2px rgba(0,0,0,.5)}
+#minimap{width:min(120px,28vw);height:min(120px,28vw);border-radius:50%;background:rgba(8,12,10,.45);border:2px solid rgba(220,235,200,.28);box-shadow:0 4px 14px rgba(0,0,0,.3);pointer-events:auto;touch-action:manipulation;cursor:pointer}
 #fullMap{position:fixed;inset:0;z-index:15;background:#000c;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:max(10px,env(safe-area-inset-top)) 12px max(12px,env(safe-area-inset-bottom));pointer-events:auto;touch-action:manipulation}
 #fullMap.hidden{display:none!important}
 #fullMap .fmHead{width:min(92vw,720px);display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;color:#f5e6c8;font-weight:bold;font-size:16px;text-shadow:0 1px 3px #000}
@@ -26,9 +26,11 @@ h1{margin:4px 0;font-size:clamp(26px,6vw,48px);color:#f5b942;letter-spacing:2px}
 .bar{height:5px;background:#222;border-radius:3px;margin:2px 0}.bar i{display:block;height:100%;border-radius:3px}
 #preview{width:min(220px,40vw);height:min(180px,22vh);flex-shrink:0}
 button.big{font-size:20px;padding:12px 28px;margin:6px;border:0;border-radius:10px;background:#f5b942;color:#211;font-weight:bold;cursor:pointer}
-#hud{position:fixed;left:0;right:0;top:0;padding:8px;padding-top:max(8px,env(safe-area-inset-top));z-index:5;pointer-events:none;font-size:13px;text-shadow:0 1px 2px #000}
-.stat{width:min(160px,32vw);height:10px;background:#0008;border-radius:5px;margin:3px 0;overflow:hidden}.stat i{display:block;height:100%}
-#count{position:fixed;top:8px;right:10px;z-index:5;font-size:15px;font-weight:bold;text-align:right;text-shadow:0 1px 2px #000;pointer-events:none}
+#hud{position:fixed;left:0;right:0;top:0;padding:10px;padding-top:max(10px,env(safe-area-inset-top));z-index:5;pointer-events:none;font-size:13px;color:#f4f0e4}
+#hud .hudPanel{display:inline-block;max-width:min(220px,48vw);padding:10px 14px;border-radius:16px;background:linear-gradient(165deg,rgba(28,36,30,.58),rgba(12,16,14,.42));border:1px solid rgba(210,230,190,.22);box-shadow:0 6px 20px rgba(0,0,0,.28),inset 0 1px 0 rgba(255,255,255,.08);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);text-shadow:0 1px 2px rgba(0,0,0,.45)}
+#hud .hudLabel{font-size:11px;letter-spacing:.04em;opacity:.85;margin-top:2px}
+.stat{width:min(168px,36vw);height:11px;background:rgba(0,0,0,.35);border-radius:8px;margin:3px 0 6px;overflow:hidden;border:1px solid rgba(255,255,255,.12)}.stat i{display:block;height:100%;border-radius:7px;box-shadow:inset 0 0 6px rgba(255,255,255,.15)}
+#count{position:fixed;top:10px;right:10px;z-index:5;font-size:14px;font-weight:bold;text-align:right;pointer-events:none;padding:8px 12px;border-radius:14px;background:linear-gradient(165deg,rgba(28,36,30,.55),rgba(12,16,14,.4));border:1px solid rgba(210,230,190,.2);box-shadow:0 4px 14px rgba(0,0,0,.25);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);text-shadow:0 1px 2px rgba(0,0,0,.45);color:#f4f0e4}
 #msg{position:fixed;top:36%;left:0;right:0;text-align:center;font-size:clamp(18px,4vw,30px);font-weight:bold;color:#f5b942;text-shadow:0 2px 4px #000;z-index:6;pointer-events:none;opacity:0;transition:opacity .5s}
 #nightReel{position:fixed;left:max(12px,env(safe-area-inset-left));right:auto;top:auto;bottom:calc(max(14px,env(safe-area-inset-bottom)) + 8px);z-index:8;pointer-events:none!important;display:flex;flex-direction:column;align-items:flex-start;gap:2px;width:min(280px,70vw);padding:8px 12px;border-radius:10px;border:1px solid #c9a22766;background:rgba(8,6,4,.72);box-shadow:0 2px 12px #000a;opacity:0;transition:opacity .7s}
 #nightReel.on{opacity:1}
@@ -60,7 +62,7 @@ button.big{font-size:20px;padding:12px 28px;margin:6px;border:0;border-radius:10
 #sleepOv{position:fixed;inset:0;z-index:6;background:radial-gradient(#0008,#000e);display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:30px;font-weight:bold;color:#cde}#sleepOv small{font-size:15px;opacity:.8;margin-top:8px}
 #inv{font-size:14px;margin-top:2px}
 #allyBtn{position:fixed;left:max(30px,env(safe-area-inset-left));bottom:calc(max(24px,env(safe-area-inset-bottom)) + 168px);z-index:7;padding:12px 16px;border-radius:24px;background:#1f7a35d0;border:2px solid #8f8;font-weight:bold;font-size:15px;touch-action:none;cursor:pointer}
-#allies{position:fixed;left:8px;top:calc(max(8px,env(safe-area-inset-top)) + 210px);z-index:7;background:#0008;border-radius:8px;padding:6px;font-size:12px;width:min(200px,52vw);pointer-events:auto}
+#allies{position:fixed;left:8px;top:calc(max(8px,env(safe-area-inset-top)) + 210px);z-index:7;background:linear-gradient(165deg,rgba(28,36,30,.55),rgba(12,16,14,.4));border:1px solid rgba(210,230,190,.2);border-radius:14px;padding:8px;font-size:12px;width:min(200px,52vw);pointer-events:auto;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);box-shadow:0 4px 14px rgba(0,0,0,.25)}
 #allies .ah{font-weight:bold;color:#7f7;margin-bottom:3px}#allies .ar{display:flex;align-items:center;gap:5px;margin:3px 0}#allies .ab{flex:0 0 54px;width:54px;height:7px;background:#333;border-radius:3px;overflow:hidden}#allies .ab i{display:block;height:100%;background:#4c4}
 #allies .ar span{flex:1;min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;text-align:left}
 #allies b{color:#f88;cursor:pointer;padding:0 4px;flex:0 0 auto}#allies .ao{display:flex;gap:3px;margin-top:4px}#allies .ao button{flex:1;font-size:11px;padding:6px 2px;border-radius:5px;border:1px solid #6a6;background:#132;color:#fff}#allies .ao button.on{background:#3a6}
@@ -125,13 +127,13 @@ button.back{background:#444;color:#fff;font-size:15px;padding:8px 18px}
 </div>
 <div id="end" class="screen hidden"><h1 id="endTitle">YOU DIED</h1><div id="final"></div>
  <div><button class="big" id="retry">Retry</button><button class="big" id="newchar">Choose new character</button><button class="big" id="endHome">Home</button></div></div>
-<div id="hud" class="hidden">
- <div>❤ Health<div class="stat"><i id="hp" style="background:#e33"></i></div></div>
- <div>🍖 Hunger<div class="stat"><i id="hu" style="background:#e93"></i></div></div>
- <div>💧 Thirst<div class="stat"><i id="th" style="background:#39f"></i></div></div>
- <div>✦ Sponsors<div class="stat"><i id="favor" style="background:linear-gradient(90deg,#c0c8d8,#e8eef8,#c9a227)"></i></div></div>
- <div id="weap">Weapon: Fists</div><div id="inv"></div><div id="dayl"></div>
-</div>
+<div id="hud" class="hidden"><div class="hudPanel">
+ <div class="hudLabel">❤ Health</div><div class="stat"><i id="hp" style="background:linear-gradient(90deg,#c43a3a,#e85a5a)"></i></div>
+ <div class="hudLabel">🍖 Hunger</div><div class="stat"><i id="hu" style="background:linear-gradient(90deg,#c87828,#e9a040)"></i></div>
+ <div class="hudLabel">💧 Thirst</div><div class="stat"><i id="th" style="background:linear-gradient(90deg,#2a6ccc,#4a9aef)"></i></div>
+ <div class="hudLabel">✦ Sponsors</div><div class="stat"><i id="favor" style="background:linear-gradient(90deg,#c0c8d8,#e8eef8,#c9a227)"></i></div>
+ <div id="weap" style="margin-top:4px;opacity:.92">Weapon: Fists</div><div id="inv"></div><div id="dayl" style="opacity:.75;font-size:11px;margin-top:2px"></div>
+</div></div>
 <div id="count" class="hidden"></div><div id="mapwrap" class="hidden"><canvas id="minimap" width="240" height="240"></canvas><div id="zonename"></div></div>
 <div id="fullMap" class="hidden"><div class="fmHead"><span id="fmTitle">Arena Map</span><button type="button" class="fmClose" id="fmClose" aria-label="Close map">✕</button></div><canvas id="fullMapCan" width="640" height="640"></canvas><div class="fmLeg">✦ Cornucopia · 🏛 Ruins · 📦 Cache · ⛺ Camp · 🔴 Firestorm · ▲ You · ● Allies · 🪂 Gifts</div><div class="fmNote" id="fmNote">Tap map or ✕ to close</div></div><div id="msg"></div><div id="nightReel" class="hidden"><div class="rt">In remembrance</div><div id="reelCard"><div class="rn" id="reelName">—</div><div class="rd" id="reelDist"></div><div class="rz" id="reelZone"></div></div></div><div id="cross" class="hidden"></div><div id="hint"></div><div id="danger"></div>
 <div id="touch" class="hidden"><div class="joy" id="joyL"><span>MOVE</span><div class="knob"></div></div><div class="joy" id="joyR"><span>LOOK</span><div class="knob"></div></div></div>
