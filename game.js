@@ -159,14 +159,23 @@ let ac=null;function audio(){if(!ac)try{ac=new (window.AudioContext||window.webk
 function tone(f,dur,type='sine',vol=.3,slide=0){if(!ac)return;const o=ac.createOscillator(),g=ac.createGain();o.type=type;o.frequency.value=f;if(slide)o.frequency.exponentialRampToValueAtTime(slide,ac.currentTime+dur);g.gain.setValueAtTime(vol,ac.currentTime);g.gain.exponentialRampToValueAtTime(.001,ac.currentTime+dur);o.connect(g).connect(ac.destination);o.start();o.stop(ac.currentTime+dur);}
 function cannon(){if(!ac)return;tone(90,1.2,'sine',.8,30);const n=ac.createBufferSource(),b=ac.createBuffer(1,ac.sampleRate*.6,ac.sampleRate),d=b.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/d.length,3);n.buffer=b;const g=ac.createGain();g.gain.value=.5;const f=ac.createBiquadFilter();f.type='lowpass';f.frequency.value=400;n.connect(f).connect(g).connect(ac.destination);n.start();}
 // Capitol-style night anthem (original procedural WebAudio — not any copyrighted soundtrack)
-let wasNight=false,anthemOn=false,anthemNodes=[],reelTimer=null,reelIdx=0;
-function stopAnthem(){for(const n of anthemNodes){try{n.stop?.();n.disconnect?.();}catch(e){}}anthemNodes=[];anthemOn=false;hideDeathReel();}
-function hideDeathReel(){clearTimeout(reelTimer);reelTimer=null;const el=$('nightReel');if(el){el.classList.remove('on');setTimeout(()=>el.classList.add('hidden'),1200);}}
-function showDeathReel(){const el=$('nightReel');if(!el||simMode)return;const list=deaths.slice();el.classList.remove('hidden');requestAnimationFrame(()=>el.classList.add('on'));
- reelIdx=0;const tick=()=>{if(!list.length){$('reelName').textContent='No fallen yet';$('reelDist').textContent='';$('reelZone').textContent='The arena waits';}
-  else{const d=list[reelIdx%list.length];$('reelName').textContent=d.name;$('reelDist').textContent=`District ${d.d}`;$('reelZone').textContent=d.zone||'';reelIdx++;}
-  reelTimer=setTimeout(tick,list.length?2200:4000);};
- tick();setTimeout(hideDeathReel,22000);}
+let wasNight=false,anthemOn=false,anthemNodes=[],reelTimer=null,reelIdx=0,pendingReel=[],activeReel=[],reelHideT=null;
+function stopAnthem(){for(const n of anthemNodes){try{n.stop?.();n.disconnect?.();}catch(e){}}anthemNodes=[];anthemOn=false;/* keep strip if flashing fallen */if(!reelHideT)hideDeathReel();}
+function hideDeathReel(){clearTimeout(reelTimer);reelTimer=null;clearTimeout(reelHideT);reelHideT=null;activeReel=[];const el=$('nightReel');if(el){el.classList.remove('on');setTimeout(()=>{if(!anthemOn)el.classList.add('hidden');},700);}}
+function showReelStrip(){const el=$('nightReel');if(!el||simMode)return;el.classList.remove('hidden');requestAnimationFrame(()=>el.classList.add('on'));}
+function paintReelEntry(d){if(!d){$('reelName').textContent='No fallen yet';$('reelDist').textContent='';$('reelZone').textContent='The arena waits';return;}
+ $('reelName').textContent=d.name;$('reelDist').textContent=`District ${d.d}`;$('reelZone').textContent=d.zone||'';}
+function showDeathReel(){const el=$('nightReel');if(!el||simMode)return;
+ activeReel=pendingReel.splice(0,pendingReel.length);showReelStrip();
+ reelIdx=0;clearTimeout(reelTimer);clearTimeout(reelHideT);reelHideT=null;
+ const tick=()=>{if(!activeReel.length)paintReelEntry(null);else paintReelEntry(activeReel[reelIdx%activeReel.length]),reelIdx++;
+  reelTimer=setTimeout(tick,activeReel.length?2200:4000);};
+ tick();setTimeout(()=>{hideDeathReel();},Math.max(22000,activeReel.length*2200+4000));}
+function queueFallen(rec){pendingReel.push(rec);if(anthemOn){activeReel.push(rec);showReelStrip();paintReelEntry(rec);}
+ else if(isNight()&&!anthemOn){ // brief name-only strip, no daytime banner
+  activeReel=[rec];showReelStrip();paintReelEntry(rec);
+  clearTimeout(reelHideT);reelHideT=setTimeout(()=>{hideDeathReel();},4500);}}
+function bumpFallen(name,d,zone){queueFallen({t:Math.round(time),name,d,zone:zone||''});}
 function note(freq,t0,dur,type,vol,filt){if(!ac)return;const o=ac.createOscillator(),g=ac.createGain(),f=ac.createBiquadFilter();
  o.type=type||'sawtooth';o.frequency.value=freq;f.type='lowpass';f.frequency.value=filt||1800;f.Q.value=0.7;
  g.gain.setValueAtTime(0.0001,t0);g.gain.exponentialRampToValueAtTime(vol,t0+.08);g.gain.exponentialRampToValueAtTime(vol*.55,t0+dur*.55);g.gain.exponentialRampToValueAtTime(0.0001,t0+dur);
@@ -554,7 +563,7 @@ function startGame(opts={}){
  if(opts.biome){rebuildArena(opts.biome,opts.seed|0);syncArenaSky();}
  else if(!opts.keepArena){const b=ARENAS[Math.floor(Math.random()*ARENAS.length)];rebuildArena(b.id,(Math.random()*0xffffffff)|0);syncArenaSky();}
  else if(!worldBuilt){rebuildArena(arenaId,ARENA_SEED);syncArenaSky();}
- clearWorld();spawnItems();zoneR=R;time=0;hazT=rnd(25,50);hazActive=false;STORM_START=40;deaths=[];allianceOn=true;winner=null;wasNight=isNight();stopAnthem();simMode=!!opts.sim;practice=!!opts.practice;survK=practice?.08:1;paused=false;homeActive=false;
+ clearWorld();spawnItems();zoneR=R;time=0;hazT=rnd(25,50);hazActive=false;STORM_START=40;deaths=[];pendingReel=[];activeReel=[];allianceOn=true;winner=null;wasNight=isNight();stopAnthem();simMode=!!opts.sim;practice=!!opts.practice;survK=practice?.08:1;paused=false;homeActive=false;
  const pc=CHARS[sel];const pName=(custom.name||'').trim().slice(0,14)||pc.name;player=makeEnt({...pc,name:pName,look:charLook(pc),pers:'player'},true);ents.push(player);player.ghost=simMode;player.ally=TEAM;player.order='follow';player.netName=opts.myName||pName;player.ammo=(WEAPONS[player.weapon]&&WEAPONS[player.weapon].ammoN)||0;player.favor=34;onlyOneAnnounced=false;clearGifts();nextGiftT=practice?25:rnd(120,170);aidCd=0;sleeveMat.color.setHex((PALETTES[custom.palette]||PALETTES[0]).c);
  const usedD=[pc.d],models=[pc.model];
  (opts.remotes||[]).forEach((r,k)=>{const c=CHARS[r.char]||CHARS[0];const e=makeEnt({...c,name:r.name||c.name,look:{model:c.model,scale:c.scale,acc:c.acc||'none',accC:c.accC,skin:c.skin,cloth:c.c,hair:c.hair},pers:'player',remote:true,conn:r.conn},false);e.ally=100+k;e.order='follow';e.inp={};r.ent=e;ents.push(e);usedD.push(c.d);models.push(c.model);});
@@ -588,12 +597,14 @@ function alive(){return ents.filter(e=>e.alive&&!e.ghost&&!e.isDummy);}
 function updateCount(){if(!simMode)$('count').innerHTML=practice?`Practice: ${alive().length-1} sparring partners`:`Tributes remaining: ${alive().length}`;}
 function kill(e,by){if(!e.alive)return;e.alive=false;e.deadT=0;const u=e.fig.userData;u.oneShot=0;playOnce(e.fig,'death',1.2);u.oneShot=99;if(e.tag)e.tag.visible=false;
  if(!simMode)setTimeout(()=>scene.remove(e.fig),8000);if(by&&by.kills!==undefined){by.kills++;by.favor=Math.min(100,(by.favor||0)+8+(by.isPlayer?4:0));}
- deaths.push({t:Math.round(time),name:e.name,d:e.d,pers:e.pers,by:by?(by.name||by):'?',zone:zoneName(e.x,e.z)});
+ const fallen={t:Math.round(time),name:e.name,d:e.d,pers:e.pers,by:by?(by.name||by):'?',zone:zoneName(e.x,e.z)};
+ deaths.push(fallen);if(!e.isDummy&&e.pers!=='spar')queueFallen(fallen);
  if(e.weapon!=='fists'){addItem(e.weapon,e.x+1,e.z);giveWeaponMesh(e.fig,null);}
  if(!simMode)cannon();updateCount();
  if(practice&&e.pers==='spar')setTimeout(()=>{if(practice&&running)spawnSpar();},8000);
- if(NET.role==='host'){netBroadcast({t:'ann',text:`BOOM! ${e.name}, District ${e.d}, has fallen`,cannon:1});if(e.isRemote&&e.conn)netSend(e.conn,{t:'dead',by:by?(by.name||by):''});}
- if(e.isPlayer){camMode='third';setCam();return endGame(false,by);}announce(`BOOM! ${e.name}, District ${e.d}, has fallen${by&&by.isPlayer?' (by you)':''}`);
+ if(NET.role==='host'){netBroadcast({t:'fallen',name:e.name,d:e.d,zone:fallen.zone,cannon:1});if(e.isRemote&&e.conn)netSend(e.conn,{t:'dead',by:by?(by.name||by):''});}
+ if(e.isPlayer){camMode='third';setCam();return endGame(false,by);}
+ /* no BOOM name banner — revealed at night remembrance */
  const al=alive();if(allianceOn&&al.length<=7){allianceOn=false;for(const t of ents)if(t.ally===1){t.ally=0;refreshTag(t);}announce("The Careers' alliance has broken!");}
  checkTeamEnd();
  if(simMode&&al.length===1){winner=al[0];running=false;}
@@ -1194,6 +1205,7 @@ function clientOnData(m){
  if(m.t==='start')return clientStart(m);
  if(m.t==='s')return clientSnap(m);
  if(m.t==='ann'){announce(m.text);if(m.cannon)cannon();return;}
+ if(m.t==='fallen'){if(m.cannon)cannon();const rec={t:Math.round(time),name:m.name,d:m.d,zone:m.zone||''};deaths.push(rec);queueFallen(rec);updateCount();return;}
  if(m.t==='anthem'){if(NET.role==='client')playAnthem(true);return;}
  if(m.t==='bub'){const e=ents[m.i];if(e)bubble(e,m.text,m.col);return;}
  if(m.t==='offer'){NET.pendingFrom=m.from;showHumanOffer({name:m.name});return;}
@@ -1239,7 +1251,7 @@ const AK={
  mutt:{pred:1,mutt:1,hp:70,spd:7.2,h:1.2,meat:1,dmg:10,cd:1.0,rng:1.9,model:'Wolf',run:'Gallop',atk:'Attack',tint:{Main:0x1c1c22,Main_Light:0x34343e},eyes:1,n:'Mutt'}};
 const KI=Object.keys(AK);
 const CAPS={rabbit:10,deer:6,boar:4,wolf:6,bear:1};
-let animals=[],animalId=0,respawnT=0,muttReleases=0,muttNight=-1,animalKills=[];
+let animals=[],animalId=0,respawnT=0,muttReleases=0,muttNight=-1,lastMuttDay=-99,animalKills=[];
 function findClip(anims,n){return anims.find(c=>c.name===n)||anims.find(c=>c.name.endsWith('|'+n));}
 function animalFig(kind){const K=AK[kind],root=new THREE.Group();
  if(!K.model){const fur=new THREE.MeshStandardMaterial({color:arena&&arena.animalTint==='arctic'?pick([0xe8eef4,0xd8e0ea,0xc8d0dc]):pick([0x9a8670,0x7d6a55,0xb5a58f]),roughness:.95}),wht=new THREE.MeshStandardMaterial({color:0xeeeeee,roughness:.9});
@@ -1263,7 +1275,7 @@ function aAnim(a,name,sp=1){const u=a.fig.userData;if(!u.mixer||!u.acts[name])re
  if(u.cur!==name){const from=u.acts[u.cur],to=u.acts[name];to.enabled=true;to.setEffectiveTimeScale(1);to.setEffectiveWeight(1);if(!to.isRunning())to.play();if(from)from.crossFadeTo(to,.25,true);u.cur=name;}u.acts[name].setEffectiveTimeScale(sp);}
 function makeAnimal(kind,x,z,o={}){const K=AK[kind];const a={id:o.id??animalId++,kind,K,x,z,y:H(x,z),dir:rnd(0,6.28),hp:K.hp,maxhp:K.hp,alive:true,speed:0,flash:0,cd:0,think:rnd(0,1),tx:x,tz:z,pace:0,state:'idle',target:null,fleeT:0,angryT:0,home:[x,z],pack:o.pack||0,windup:0,swing:0,atkT:0,deadT:0,isAnimal:true,born:time,stuckT:0,lx:x,lz:z};
  a.fig=simMode?null:animalFig(kind);if(a.fig){a.fig.position.set(x,a.y,z);scene.add(a.fig);}animals.push(a);return a;}
-function clearAnimals(){for(const a of animals)if(a.fig)scene.remove(a.fig);animals=[];respawnT=0;muttReleases=0;muttNight=-1;animalKills=[];}
+function clearAnimals(){for(const a of animals)if(a.fig)scene.remove(a.fig);animals=[];respawnT=0;muttReleases=0;muttNight=-1;lastMuttDay=-99;animalKills=[];}
 function humansNear(x,z,r){return ents.some(e=>e.alive&&!e.ghost&&e.isHuman&&Math.hypot(e.x-x,e.z-z)<r);}
 function zoneSpot(kind,tries=40){for(let i=0;i<tries;i++){let x,z;
   if(kind==='bear'){const ang=rnd(0,6.28),r=rnd(6,22);x=CAVE.x+Math.cos(ang)*r;z=CAVE.z+Math.sin(ang)*r;}
@@ -1323,8 +1335,13 @@ function releaseMutts(){muttReleases++;const T=tributes();if(!T.length)return;co
  const n=Math.max(1,Math.round((1+Math.min(3,muttReleases))*(arena&&arena.muttMul||1)));for(let i=0;i<n;i++){for(let k=0;k<20;k++){const ang=rnd(0,6.28),r=rnd(30,45);const x=focus.x+Math.cos(ang)*r,z=focus.z+Math.sin(ang)*r;if(inWater(x,z)||Math.hypot(x,z)>zoneR-4)continue;const m=makeAnimal('mutt',x,z);m.target=focus;m.angryT=time+30;break;}}}
 function animalsStep(dt){if(practice&&animals.some(a=>a.K.pred))return;
  const night=isNight(),day=Math.floor(time/dayLen);
- if(!practice&&running){if(night&&day>=1&&muttReleases<3&&muttNight!==day&&(day>=2||Math.random()<.5*dt/10)){muttNight=day;releaseMutts();}
-  else if(!night&&muttNight!==-2&&tributes().length<=6&&muttReleases<2&&time>200){muttNight=-2;releaseMutts();}}
+ if(!practice&&running){if(night&&day>=1&&muttNight!==day){muttNight=day; // consider at most once per night
+   const left=tributes().length,since=day-(lastMuttDay<-90? -99:lastMuttDay);
+   let chance=.30;if(left<=8)chance=.42;if(left<=5)chance=.58;if(left<=3)chance=.72;
+   if(since<2)chance*=.2;else if(since>=3)chance=Math.min(.75,chance+.12);
+   if(muttReleases>=4||day<1)chance=0;
+   if(Math.random()<chance){lastMuttDay=day;releaseMutts();}}
+  else if(!night&&lastMuttDay!==-2&&tributes().length<=4&&muttReleases<3&&time>280&&Math.random()<dt*.002){lastMuttDay=-2;releaseMutts();}}
  respawnT-=dt;if(respawnT<=0){respawnT=25;const cnt={};for(const a of animals)if(a.alive)cnt[a.kind]=(cnt[a.kind]||0)+1;
   if(practice){if((cnt.rabbit||0)<4)makeAnimal('rabbit',rnd(-30,30),rnd(26,40));if((cnt.deer||0)<2)makeAnimal('deer',-30,28);}
   else for(const k of ['rabbit','deer','boar','wolf','bear']){if((cnt[k]||0)<(k==='wolf'?CAPS.wolf-2:CAPS[k])&&Math.random()<(k==='bear'?.15:.5)){spawnKind(k);break;}}}
@@ -1459,7 +1476,7 @@ Object.assign(window.__game,{
  yaw:(v)=>{if(v!==undefined)yaw=v;return yaw;},
  pitch:(v)=>{if(v!==undefined)pitch=v;return pitch;},
  projs:()=>projs.map(p=>({x:+p.x.toFixed(1),z:+p.z.toFixed(1),y:+p.y.toFixed(2),life:+p.life.toFixed(2)})),
- playAnthem,stopAnthem,doJump,findClimb,startClimb,endClimb,grounded,anthemPlaying:()=>anthemOn,nightFlag:()=>wasNight,nightCycle,isNight,deaths:()=>deaths,cannon,
+ playAnthem,stopAnthem,doJump,findClimb,startClimb,endClimb,grounded,anthemPlaying:()=>anthemOn,nightFlag:()=>wasNight,nightCycle,isNight,deaths:()=>deaths,pendingReel:()=>pendingReel.slice(),queueFallen,releaseMutts,muttStats:()=>({releases:muttReleases,lastDay:lastMuttDay,night:muttNight}),cannon,
  nearestClimbable:(kind)=>{let best=null,bd=1e9;for(const o of obstacles){if(!climbable(o))continue;if(kind==='tree'&&o.b!==4)continue;if(kind==='rock'&&(o.b===4||o.corn))continue;if(kind==='corn'&&!o.corn)continue;const d=Math.hypot(o.x-(player?player.x:0),o.z-(player?player.z:0));if(d<bd){bd=d;best=o;}}return best?{x:best.x,z:best.z,h:best.h,r:best.r,b:best.b,corn:!!best.corn,d:bd}:null},
  forceGift:(opts={})=>{if(!player)return null;if(opts.favor!=null)player.favor=opts.favor;const g=dropGift(player,{force:true,instant:opts.instant!==false,contents:opts.contents,emerg:!!opts.emerg});return g&&{id:g.id,x:g.x,z:g.z,landed:g.landed,contents:g.contents.slice()};},
  gifts:()=>gifts.map(g=>({id:g.id,x:+g.x.toFixed(1),z:+g.z.toFixed(1),y:+g.y.toFixed(1),landed:g.landed,opened:g.opened,contents:g.contents.slice()})),
