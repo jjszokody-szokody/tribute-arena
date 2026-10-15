@@ -9,9 +9,16 @@
   converted to .glb with meshopt compression via gltf-transform.
 - The earlier Mixamo-derived Soldier.glb / Xbot.glb have been removed.
 
+## 3D animals (assets/models)
+- **Animated Animal Pack / Ultimate Animated Animal Pack** by **Quaternius** (https://quaternius.com / poly.pizza), **CC0 1.0**.
+  Models used: Wolf, Deer, Pig (as wild boar). Animations: Idle, Walk, Gallop/Run, Attack, Death, Eating.
+  Retrieved from poly.pizza (CC0), meshopt-compressed. Rabbits are procedural low-poly meshes (original).
+  Bears and Gamemaker "mutts" reuse the Wolf mesh with recolored / emissive materials.
+
 ## Textures (assets/tex)
 - Grass001, Rock030, Bark007, Ground037 by ambientCG (https://ambientcg.com), **CC0 1.0**. Downscaled to 512 px.
 - waternormals.jpg from the three.js examples (MIT).
 
-## Code
+## Code & networking
 - three.js r160 (MIT), loaded from unpkg: Sky, Water, GLTFLoader, MeshoptDecoder, SkeletonUtils, RoomEnvironment, EffectComposer/UnrealBloomPass.
+- PeerJS 1.5.4 (MIT) for online peer-to-peer signaling via 0.peerjs.com.

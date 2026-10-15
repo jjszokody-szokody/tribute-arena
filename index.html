@@ -34,6 +34,11 @@ button.big{font-size:20px;padding:12px 28px;margin:6px;border:0;border-radius:10
 #btns div:active{background:#f5b94288}
 #danger{position:fixed;inset:0;pointer-events:none;z-index:3;box-shadow:inset 0 0 80px #f30;opacity:0;transition:opacity .3s}
 #qual button{font-size:13px;padding:5px 10px;margin:2px;border-radius:6px;border:1px solid #886;background:#2a221a;color:#fff}#qual button.on{background:#f5b942;color:#211}
+#campBtn{position:fixed;left:max(30px,env(safe-area-inset-left));bottom:calc(max(24px,env(safe-area-inset-bottom)) + 224px);z-index:7;padding:11px 15px;border-radius:24px;background:#7a4a1fd0;border:2px solid #fb6;font-weight:bold;font-size:15px;touch-action:none;cursor:pointer;color:#fff}
+#campMenu{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(max(24px,env(safe-area-inset-bottom)) + 200px);z-index:9;background:#000d;border:2px solid #fb6;border-radius:12px;padding:10px;display:flex;flex-direction:column;gap:6px;min-width:220px}
+#campMenu .ch{font-weight:bold;color:#fb6;text-align:center}#campMenu button{padding:11px 12px;border-radius:8px;border:0;background:#f5b942;font-weight:bold;font-size:15px}#campMenu button.off{opacity:.45}#campMenu button[data-a=close]{background:#555;color:#fff}
+#sleepOv{position:fixed;inset:0;z-index:6;background:radial-gradient(#0008,#000e);display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:30px;font-weight:bold;color:#cde}#sleepOv small{font-size:15px;opacity:.8;margin-top:8px}
+#inv{font-size:14px;margin-top:2px}
 #allyBtn{position:fixed;left:max(30px,env(safe-area-inset-left));bottom:calc(max(24px,env(safe-area-inset-bottom)) + 168px);z-index:7;padding:12px 16px;border-radius:24px;background:#1f7a35d0;border:2px solid #8f8;font-weight:bold;font-size:15px;touch-action:none;cursor:pointer}
 #allies{position:fixed;left:8px;top:calc(max(8px,env(safe-area-inset-top)) + 150px);z-index:7;background:#0008;border-radius:8px;padding:6px;font-size:12px;width:min(170px,44vw);pointer-events:auto}
 #allies .ah{font-weight:bold;color:#7f7;margin-bottom:3px}#allies .ar{display:flex;align-items:center;gap:4px;margin:3px 0}#allies .ar span{flex:0 0 auto;max-width:70px;overflow:hidden;white-space:nowrap}#allies .ab{flex:1;height:6px;background:#333;border-radius:3px;overflow:hidden}#allies .ab i{display:block;height:100%;background:#4c4}
@@ -89,11 +94,11 @@ button.back{background:#444;color:#fff;font-size:15px;padding:8px 18px}
  <div>❤ Health<div class="stat"><i id="hp" style="background:#e33"></i></div></div>
  <div>🍖 Hunger<div class="stat"><i id="hu" style="background:#e93"></i></div></div>
  <div>💧 Thirst<div class="stat"><i id="th" style="background:#39f"></i></div></div>
- <div id="weap">Weapon: Fists</div><div id="dayl"></div>
+ <div id="weap">Weapon: Fists</div><div id="inv"></div><div id="dayl"></div>
 </div>
 <div id="count" class="hidden"></div><div id="mapwrap" class="hidden"><canvas id="minimap" width="240" height="240"></canvas><div id="zonename"></div></div><div id="msg"></div><div id="cross" class="hidden"></div><div id="hint"></div><div id="danger"></div>
 <div id="touch" class="hidden"><div class="joy" id="joyL"><span>MOVE</span><div class="knob"></div></div><div class="joy" id="joyR"><span>LOOK</span><div class="knob"></div></div></div>
-<div id="allyBtn" class="hidden">🤝 ALLY</div><div id="allies" class="hidden"></div>
+<div id="allyBtn" class="hidden">🤝 ALLY</div><div id="campBtn" class="hidden">⛺ CAMP</div><div id="campMenu" class="hidden"></div><div id="sleepOv" class="hidden"><div>💤 Sleeping…</div><small>Tap to wake up</small></div><div id="allies" class="hidden"></div>
 <div id="btns" class="hidden"><div data-b="cam">CAM</div><div data-b="jump">JUMP</div><div data-b="use">GRAB</div><div data-b="atk" style="background:#a226">ATK</div></div>
 <script type="module" src="game.js"></script>
 </body></html>
