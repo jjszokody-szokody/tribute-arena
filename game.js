@@ -637,7 +637,8 @@ function startGame(opts={}){
  setTimeout(()=>announce(practice?'Practice: hit the dummies to the east!':'Let the Games begin!'),practice?0:2200);updateCount();
  if(practice)startTutorial();}
 function showGameUI(){['select','end','home','online','pauseMenu'].forEach(s=>$(s).classList.add('hidden'));['hud','count','cross','mapwrap','pauseBtn','campBtn','aidBtn'].forEach(s=>$(s).classList.remove('hidden'));if($('aidBtn'))$('aidBtn').style.display='';
- if(isTouch){$('touch').classList.remove('hidden');$('btns').classList.remove('hidden');}
+ if(isTouch){$('touch').classList.remove('hidden');$('btns').classList.remove('hidden');hideKeysUI();}
+ else{openKeysLegend(true);}
  renderer.domElement.style.display='block';running=true;$('hint').textContent=isTouch?'':'Click to lock mouse';}
 function spawnSpar(name){const look=aiLook([]);const e=makeEnt({name:name||pick(FIRST),d:pick([3,5,6,8,10]),hp:70,spd:.85,str:.6,stl:.4,look,pers:'spar'},false);const a=rnd(0,6.28);e.x=Math.cos(a)*14;e.z=Math.sin(a)*14;e.y=H(e.x,e.z);e.tx=e.x;e.tz=e.z;ents.push(e);updateCount();return e;}
 function spawnDummy(x,z){const g=new THREE.Group(),straw=new THREE.MeshStandardMaterial({color:0xc8a860,roughness:.9}),woodM=new THREE.MeshStandardMaterial({color:0x6b4a2b,roughness:.9});
@@ -1005,7 +1006,7 @@ function updateEnt(e,dt){
  if(e.sleeping){if(sleepTick(e,dt)){e.speed=0;e.fig.position.set(e.x,e.y,e.z);return;}}
  if(e.isHuman&&e.meat>0&&e.hunger<20&&eatMeat(e,false))say(e,'Starving – you ate raw meat');
  e.speed=0;
- if(e.isPlayer){e.blocking=!!(blkHeld||keys.ShiftLeft||keys.ShiftRight);e.blockHeld=e.blocking;
+ if(e.isPlayer){e.blocking=!!(blkHeld||keys.ShiftLeft||keys.ShiftRight||keys.KeyB);e.blockHeld=e.blocking;
   let mx=(keys.KeyD?1:0)-(keys.KeyA?1:0)+moveX,mz=(keys.KeyW||keys.ArrowUp?1:0)-(keys.KeyS||keys.ArrowDown?1:0)+moveY;
   if(keys.ArrowLeft)yaw+=dt*2;if(keys.ArrowRight)yaw-=dt*2;const l=Math.hypot(mx,mz);if(l>1){mx/=l;mz/=l;}
   e._cmx=mx;e._cmz=mz;e.dir=yaw+Math.PI;const fx=Math.sin(e.dir),fz=Math.cos(e.dir),rx=-fz,rz=fx;
@@ -1224,7 +1225,7 @@ function cmdDismiss(name){if(NET.role==='client')netSend(NET.conn,{t:'dismiss',n
 
 // ---------- modes, home screen, pause, tutorial ----------
 let practice=false,survK=1,paused=false,homeActive=true,gameMode='solo',modelsReady=false,homeT=0;
-function hideGameUI(){['hud','count','cross','mapwrap','pauseBtn','touch','btns','allies','allyBtn','campBtn','aidBtn','campMenu','sleepOv','tut','offerBox','pauseMenu','fullMap'].forEach(s=>$(s).classList.add('hidden'));mapOpen=false;mapPausedUs=false;$('danger').style.opacity=0;}
+function hideGameUI(){['hud','count','cross','mapwrap','pauseBtn','touch','btns','allies','allyBtn','campBtn','aidBtn','campMenu','sleepOv','tut','offerBox','pauseMenu','fullMap','keysBtn','keysPanel'].forEach(s=>$(s).classList.add('hidden'));mapOpen=false;mapPausedUs=false;keysAutoT&&clearTimeout(keysAutoT);keysAutoT=0;$('danger').style.opacity=0;}
 function showHome(){fpArms.visible=false;running=false;paused=false;practice=false;clearWorld();player=null;hideGameUI();['select','end','online','arena'].forEach(s=>{const el=$(s);if(el)el.classList.add('hidden');});$('home').classList.remove('hidden');homeActive=true;renderer.domElement.style.display='block';if(document.pointerLockElement)document.exitPointerLock();}
 function homeOrbit(dt){homeT+=dt;time=40;const a=homeT*.05,r=70;camera.position.set(Math.cos(a)*r,26+H(Math.cos(a)*r,Math.sin(a)*r),Math.sin(a)*r);camera.lookAt(0,4,0);updateChunks(camera.position.x*.5,camera.position.z*.5);updateSky();grassU.time.value+=dt;
  if(water&&water.material.uniforms&&water.material.uniforms.time)water.material.uniforms.time.value+=dt*.5;if(zoneMesh)zoneMesh.scale.set(R,1,R);if(composer)composer.render();else renderer.render(scene,camera);}
@@ -1232,6 +1233,16 @@ function goSelect(mode){gameMode=mode;homeActive=false;$('home').classList.add('
 $('mPractice').onclick=()=>{audio();goSelect('practice');};$('mSolo').onclick=()=>{audio();goSelect('solo');};$('mOnline').onclick=()=>{audio();openOnline();};
 $('sBack').onclick=()=>showHome();$('endHome').onclick=()=>{netClose();showHome();};
 function onReady(){const room=new URLSearchParams(location.search).get('room');if(room){openOnline();$('oCode').value=room.toUpperCase();setTimeout(()=>$('oJoin').click(),300);}}
+let keysOpen=false,keysAutoT=0,keysDismissed=false;
+function hideKeysUI(){keysAutoT&&clearTimeout(keysAutoT);keysAutoT=0;keysOpen=false;const b=$('keysBtn'),p=$('keysPanel');if(b)b.classList.add('hidden');if(p)p.classList.add('hidden');}
+function setKeysPanel(open){if(isTouch){hideKeysUI();return;}keysOpen=!!open;const b=$('keysBtn'),p=$('keysPanel');if(b)b.classList.remove('hidden');if(p)p.classList.toggle('hidden',!keysOpen);if(b)b.textContent=keysOpen?'Hide':'Keys';}
+function openKeysLegend(auto){if(isTouch)return hideKeysUI();keysAutoT&&clearTimeout(keysAutoT);keysAutoT=0;
+ if(auto)keysDismissed=false;setKeysPanel(true);
+ if(auto){keysAutoT=setTimeout(()=>{keysAutoT=0;setKeysPanel(false);},10000);}}
+function dismissKeysLegend(){keysDismissed=true;keysAutoT&&clearTimeout(keysAutoT);keysAutoT=0;setKeysPanel(false);}
+function toggleKeysLegend(){if(isTouch)return;keysAutoT&&clearTimeout(keysAutoT);keysAutoT=0;if(keysOpen)dismissKeysLegend();else{keysDismissed=false;setKeysPanel(true);}}
+{const kb=$('keysBtn');if(kb)kb.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();toggleKeysLegend();});
+ const kc=$('keysClose');if(kc)kc.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();dismissKeysLegend();});}
 function togglePause(){if(mapOpen){closeFullMap();return;}if(!running&&!paused)return;paused=!paused;$('pauseMenu').classList.toggle('hidden',!paused);$('pauseNote').textContent=NET.role?'Online matches keep running while this menu is open.':'';if(paused&&document.pointerLockElement)document.exitPointerLock();}
 {const pb=$('pauseBtn');const f=ev=>{ev.preventDefault();ev.stopPropagation();togglePause();};pb.addEventListener('touchstart',f,{passive:false});pb.addEventListener('click',f);}
 $('pResume').onclick=()=>togglePause();$('pQuit').onclick=()=>{netClose();showHome();};
@@ -1241,9 +1252,9 @@ bindMapTap($('fmClose'),()=>closeFullMap());
 bindMapTap(fm,()=>closeFullMap());
 $('fullMap')&&$('fullMap').addEventListener('click',ev=>{if(ev.target===$('fullMap'))closeFullMap();});
 addEventListener('keydown',e=>{if(!running)return;if(e.code==='KeyM')toggleFullMap();if((e.code==='Escape'||e.code==='KeyP')&&mapOpen){e.preventDefault();closeFullMap();}});
-const TUT=[['move','Move: '+(isTouch?'drag the left joystick':'W A S D')],['look','Look around: '+(isTouch?'drag the right joystick':'move the mouse (click to lock it)')],['hit','Attack: '+(isTouch?'tap ATK':'left click')+' — hit a straw dummy to the east'],
- ['jump','Jump: '+(isTouch?'tap JUMP':'Space')+' — near a tree, rock, or wall, JUMP starts a climb'],['grab','Grab: '+(isTouch?'tap GRAB':'press E')+' near weapons and food, or at water to drink'],['cam','Camera: '+(isTouch?'tap CAM':'press V')+' to switch first/third person'],
- ['ally','Allies: walk up to a sparring tribute and '+(isTouch?'tap 🤝 ALLY':'press F')+'. Give orders in the Allies panel'+(isTouch?'':' (1/2/3)')],['map','Minimap (top right): tap it for a fullscreen map. White arrow = you, gold = Cornucopia, red = firestorm, green = allies. Pause with II'+(isTouch?'':' or P')+'.']];
+const TUT=[['move','Move: '+(isTouch?'drag the left joystick':'W A S D or arrow keys')+(isTouch?'':'. Open <b>Keys</b> (bottom-right) anytime for the full shortcut list')],['look','Look around: '+(isTouch?'drag the right joystick':'move the mouse (click to lock it)')],['hit','Attack: '+(isTouch?'tap ATK':'left click')+' — hit a straw dummy to the east'],
+ ['jump','Jump: '+(isTouch?'tap JUMP':'Space')+' — face a tree, rock, or wall and press Space to climb; keep pushing up (or Space near the lip) to mantle on top'],['grab','Grab: '+(isTouch?'tap GRAB':'press E')+' near weapons and food, or at water to drink'],['cam','Camera: '+(isTouch?'tap CAM':'press V')+' to switch first/third person'],
+ ['ally','Allies: walk up to a sparring tribute and '+(isTouch?'tap 🤝 ALLY':'press F')+'. Give orders in the Allies panel'+(isTouch?'':' (1 follow / 2 hold / 3 scavenge)')],['map','Minimap (top right): '+(isTouch?'tap':'click or press M for')+' fullscreen map. White arrow = you, gold = Cornucopia, red = firestorm, green = allies. Pause with II'+(isTouch?'':' / Esc / P')+'.'+(isTouch?'':' Desktop: C camp · G AID · B/Shift block.')]];
 let tutI=-1;function startTutorial(){tutI=0;showTut();}
 function showTut(){if(tutI<0||tutI>=TUT.length){$('tut').classList.add('hidden');tutI=-1;return;}$('tut').classList.remove('hidden');$('tutText').innerHTML=`<b>Step ${tutI+1}/${TUT.length}</b><br>${TUT[tutI][1]}`;$('tutNext').textContent=tutI===TUT.length-1?'Done':'Next';}
 function tutEvent(k){if(tutI>=0&&TUT[tutI][0]===k){tutI++;setTimeout(showTut,400);}}
@@ -1348,7 +1359,7 @@ function clientStep(dt){if(NET.lastSnap&&performance.now()-NET.lastSnap>20000){c
   e.flash=Math.max(0,(e.flash||0)-dt);e.swing=Math.max(0,(e.swing||0)-dt);e.fig.position.set(e.x,e.y,e.z);e.fig.rotation.y=e.dir;}
  clientAnimalStep(dt);if(player&&player.alive)player.dir=yaw+Math.PI;
  NET.inT-=dt;if(NET.inT<=0){NET.inT=.05;const mx=(keys.KeyD?1:0)-(keys.KeyA?1:0)+moveX,mz=(keys.KeyW||keys.ArrowUp?1:0)-(keys.KeyS||keys.ArrowDown?1:0)+moveY;
-  netSend(NET.conn,{t:'in',mx:q(mx),mz:q(mz),yaw:q(yaw,1000),atk:(atkHeld||performance.now()<(NET.inp.atkUntil||0))?1:0,block:(blkHeld||keys.ShiftLeft||keys.ShiftRight)?1:0,jump:NET.inp.jump||0,use:NET.inp.use||0,offer:NET.inp.offer||0});}
+  netSend(NET.conn,{t:'in',mx:q(mx),mz:q(mz),yaw:q(yaw,1000),atk:(atkHeld||performance.now()<(NET.inp.atkUntil||0))?1:0,block:(blkHeld||keys.ShiftLeft||keys.ShiftRight||keys.KeyB)?1:0,jump:NET.inp.jump||0,use:NET.inp.use||0,offer:NET.inp.offer||0});}
  NET.pingT-=dt;if(NET.pingT<=0){NET.pingT=2;netSend(NET.conn,{t:'ping',ts:performance.now()});}}
 function clientHostLeft(){if(NET.role!=='client')return;NET.role=null;NET.lastSnap=0;const wasPlaying=running;running=false;hideGameUI();clearWorld();
  $('end').classList.remove('hidden');$('endTitle').textContent='HOST LEFT';$('endTitle').style.color='#e33';$('final').textContent='The host closed the match.';$('retry').classList.add('hidden');$('newchar').classList.add('hidden');netClose();}
@@ -1638,6 +1649,7 @@ Object.assign(window.__game,{
  charNames:CHARS.map(c=>c.name),
  setCustom:(o)=>{Object.assign(custom,o||{});},
  startPractice:(biome,seed)=>startGame({practice:true,biome:biome||'wilds',seed:seed!=null?seed:42}),
+ keysUI:()=>({isTouch,open:keysOpen,btn:!$('keysBtn')?.classList.contains('hidden'),panel:!$('keysPanel')?.classList.contains('hidden')}),openKeysLegend,dismissKeysLegend,toggleKeysLegend,
  startSolo:(biome,seed)=>startGame({biome:biome||'wilds',seed:seed!=null?seed:42}),
  yaw:(v)=>{if(v!==undefined)yaw=v;return yaw;},
  pitch:(v)=>{if(v!==undefined)pitch=v;return pitch;},

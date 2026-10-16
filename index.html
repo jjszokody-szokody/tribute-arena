@@ -80,6 +80,14 @@ button.back{background:#444;color:#fff;font-size:15px;padding:8px 18px}
 #oChars button{font-size:12px;padding:6px 8px;border-radius:6px;border:1px solid #886;background:#2a221a;color:#fff}#oChars button.on{background:#f5b942;color:#211}
 #oLobby{min-width:240px;background:#0006;border-radius:8px;padding:6px;font-size:14px;text-align:left}#oLobby div{padding:3px 6px}
 #pauseBtn{position:fixed;bottom:calc(max(24px,env(safe-area-inset-bottom)) + 40px);left:50%;transform:translateX(-50%);z-index:8;width:40px;height:34px;border-radius:8px;background:#0007;border:1px solid #fff6;display:flex;align-items:center;justify-content:center;font-weight:bold;cursor:pointer}
+#keysBtn{position:fixed;right:max(12px,env(safe-area-inset-right));bottom:calc(max(16px,env(safe-area-inset-bottom)) + 18px);z-index:8;padding:8px 12px;border-radius:18px;background:rgba(12,16,14,.72);border:1px solid rgba(210,230,190,.28);color:#f4f0e4;font-weight:bold;font-size:13px;cursor:pointer;pointer-events:auto;box-shadow:0 4px 14px rgba(0,0,0,.28);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);text-shadow:0 1px 2px rgba(0,0,0,.45)}
+#keysBtn:hover{border-color:#f5b94288;color:#f5b942}
+#keysPanel{position:fixed;right:max(12px,env(safe-area-inset-right));bottom:calc(max(16px,env(safe-area-inset-bottom)) + 58px);z-index:8;width:min(280px,46vw);max-height:min(58vh,420px);overflow:auto;padding:10px 12px 12px;border-radius:14px;background:linear-gradient(165deg,rgba(28,36,30,.78),rgba(12,16,14,.68));border:1px solid rgba(210,230,190,.25);box-shadow:0 6px 20px rgba(0,0,0,.35);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);pointer-events:auto;font-size:12px;line-height:1.35;color:#f4f0e4;text-shadow:0 1px 2px rgba(0,0,0,.4)}
+#keysPanel .kh{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;font-weight:bold;color:#f5b942;letter-spacing:.04em;font-size:12px}
+#keysPanel .kh button{border:0;background:#0006;color:#fff;border-radius:8px;width:26px;height:26px;cursor:pointer;font-size:14px;line-height:1}
+#keysPanel .kr{display:grid;grid-template-columns:auto 1fr;gap:4px 10px;align-items:center}
+#keysPanel kbd{display:inline-block;min-width:1.4em;padding:2px 6px;margin:1px 1px;border-radius:5px;border:1px solid #fff4;background:#0007;font:600 11px/1.2 ui-monospace,SFMono-Regular,Menlo,monospace;text-align:center;color:#ffe9b0}
+#keysPanel .ka{opacity:.9}
 #tut{position:fixed;left:50%;transform:translateX(-50%);top:22%;z-index:9;background:#000c;border:2px solid #f5b942;border-radius:12px;padding:12px 16px;width:min(360px,88vw);text-align:center;font-size:15px}
 #tut button,#offerBox button{margin:8px 4px 0;padding:8px 16px;border-radius:8px;border:0;background:#f5b942;font-weight:bold}
 #offerBox{position:fixed;left:50%;transform:translateX(-50%);top:45%;z-index:9;background:#000d;border:2px solid #7f7;border-radius:12px;padding:12px;text-align:center}
@@ -123,7 +131,7 @@ button.back{background:#444;color:#fff;font-size:15px;padding:8px 18px}
  </div>
  <div id="chars"></div>
  <button class="big" id="start" disabled>Loading…</button><button class="big back" id="sBack">← Home</button>
- <div style="font-size:11px;opacity:.6">Desktop: WASD move · mouse look · click attack · Space jump/climb · E pick up/use · Shift block · V camera</div>
+ <div style="font-size:11px;opacity:.6">Desktop: WASD move · mouse look · click attack · Space jump/climb · E grab · Shift/B block · V camera · Keys panel in-match</div>
 </div>
 <div id="end" class="screen hidden"><h1 id="endTitle">YOU DIED</h1><div id="final"></div>
  <div><button class="big" id="retry">Retry</button><button class="big" id="newchar">Choose new character</button><button class="big" id="endHome">Home</button></div></div>
@@ -139,5 +147,24 @@ button.back{background:#444;color:#fff;font-size:15px;padding:8px 18px}
 <div id="touch" class="hidden"><div class="joy" id="joyL"><span>MOVE</span><div class="knob"></div></div><div class="joy" id="joyR"><span>LOOK</span><div class="knob"></div></div></div>
 <div id="allyBtn" class="hidden">🤝 ALLY</div><div id="campBtn" class="hidden">⛺ CAMP</div><div id="aidBtn" class="hidden">🪂 AID</div><div id="campMenu" class="hidden"></div><div id="sleepOv" class="hidden"><div>💤 Sleeping…</div><small>Tap to wake up</small></div><div id="allies" class="hidden"></div>
 <div id="btns" class="hidden"><div data-b="cam">CAM</div><div data-b="jump">JUMP</div><div data-b="use">GRAB</div><div data-b="block" style="background:#345">BLOCK</div><div data-b="atk" style="background:#a226">ATK</div></div>
+<button type="button" id="keysBtn" class="hidden" aria-label="Keyboard controls">Keys</button>
+<div id="keysPanel" class="hidden" role="dialog" aria-label="Keyboard controls">
+ <div class="kh"><span>⌨ CONTROLS</span><button type="button" id="keysClose" aria-label="Close">✕</button></div>
+ <div class="kr">
+  <div><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> / arrows</div><div class="ka">Move</div>
+  <div>Mouse</div><div class="ka">Look (click to lock)</div>
+  <div>Click</div><div class="ka">Attack</div>
+  <div><kbd>Space</kbd></div><div class="ka">Jump · climb (face + Space)</div>
+  <div><kbd>E</kbd></div><div class="ka">Grab / drink / use</div>
+  <div><kbd>V</kbd></div><div class="ka">Camera 1st / 3rd</div>
+  <div><kbd>F</kbd></div><div class="ka">Ally offer</div>
+  <div><kbd>C</kbd></div><div class="ka">Camp menu</div>
+  <div><kbd>G</kbd></div><div class="ka">Request AID</div>
+  <div><kbd>B</kbd> / <kbd>Shift</kbd></div><div class="ka">Block</div>
+  <div><kbd>M</kbd></div><div class="ka">Fullscreen map</div>
+  <div><kbd>Esc</kbd> / <kbd>P</kbd></div><div class="ka">Pause</div>
+  <div><kbd>1</kbd><kbd>2</kbd><kbd>3</kbd></div><div class="ka">Ally orders</div>
+ </div>
+</div>
 <script type="module" src="game.js"></script>
 </body></html>
