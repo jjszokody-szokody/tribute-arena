@@ -150,6 +150,9 @@ function itemMesh(t){const g=new THREE.Group();
  if(t==='ammo_stone'){for(let i=0;i<4;i++){const s=new THREE.Mesh(new THREE.SphereGeometry(.05,5,4),new THREE.MeshStandardMaterial({color:0x888}));s.position.set((i%2)*.08,.08+(i>1)*.06,(i>>1)*.08);g.add(s);}}
  if(t==='cloak'){const c=new THREE.Mesh(new THREE.BoxGeometry(.5,.55,.12),new THREE.MeshStandardMaterial({color:0x3a4a6a,roughness:.9}));c.position.y=.3;g.add(c);}
  if(t==='flask'){const c=new THREE.Mesh(new THREE.CylinderGeometry(.09,.11,.35,10),new THREE.MeshStandardMaterial({color:0x4a7a9a,metalness:.4,roughness:.3}));c.position.y=.2;g.add(c);}
+ if(t==='scrap'){const m=new THREE.Mesh(new THREE.DodecahedronGeometry(.16,0),new THREE.MeshStandardMaterial({color:0x8a9098,metalness:.65,roughness:.4}));m.position.y=.12;m.castShadow=true;g.add(m);}
+ if(t==='charcoal'){for(let i=0;i<3;i++){const c=new THREE.Mesh(new THREE.BoxGeometry(.1,.08,.14),new THREE.MeshStandardMaterial({color:0x222}));c.position.set((i-1)*.08,.06,i*.02);g.add(c);}}
+ if(t==='resin'){const c=new THREE.Mesh(new THREE.SphereGeometry(.12,6,5),new THREE.MeshStandardMaterial({color:0xc45a12,roughness:.45,metalness:.1}));c.position.y=.1;g.add(c);}
  return g;}
 const meatMat=new THREE.MeshStandardMaterial({color:0xa8323a,roughness:.55}),boneMat=new THREE.MeshStandardMaterial({color:0xeee6d0,roughness:.6});
 
@@ -575,10 +578,15 @@ function spawnItems(){items.forEach(i=>scene.remove(i.m));items=[];cacheCrates.f
  const inside=['food','water',pick(pool),pick(['sword','bow','trident','shield'])];
  inside.forEach((t,i)=>{const a=i/inside.length*6.283+1,r=rnd(.8,2.2);addItem(t,CORN.x+Math.sin(a)*r,CORN.z+Math.cos(a)*r);});
  for(const [cx,cz] of CACHES){const c=new THREE.Mesh(new THREE.BoxGeometry(1.2,.8,.9),crateMat);c.position.set(cx,H(cx,cz)+.4,cz);c.rotation.y=rnd(0,3);c.castShadow=true;scene.add(c);cacheCrates.push(c);
-  for(const t of [pick(pool),'food','water',pick(['food','berries',pick(pool)])]){const a=rnd(0,6.28);addItem(t,cx+Math.cos(a)*2.2,cz+Math.sin(a)*2.2);}}
+  for(const t of [pick(pool),'food','water',pick(['food','berries',pick(pool)]),pick(['scrap','scrap','charcoal','scrap'])]){const a=rnd(0,6.28);addItem(t,cx+Math.cos(a)*2.2,cz+Math.sin(a)*2.2);}
+  if(Math.random()<.55){const a=rnd(0,6.28);addItem('scrap',cx+Math.cos(a)*1.6,cz+Math.sin(a)*1.6);}}
  // biome flavor near water
  if(arenaId==='urban'||arenaId==='wilds'){for(let i=0;i<3;i++){const a=rnd(0,6.28);addItem('trident',LAKE.x+Math.cos(a)*(LAKE.r+3),LAKE.z+Math.sin(a)*(LAKE.r+3));}}
  if(arenaId==='wilds'||arenaId==='tundra'){for(let i=0;i<4;i++){let x,z;do{x=rnd(-R+20,R-20);z=rnd(-R+20,R-20);}while(Math.hypot(x,z)<40);addItem('bow',x,z);}}
+ // crafting mats: scrap near ruins/urban, charcoal in wilds/desert, resin near pines
+ {const nScrap=arenaId==='urban'?10:arenaId==='desert'?5:4;for(let i=0;i<nScrap;i++){let x,z,g=0;do{x=rnd(-R+15,R-15);z=rnd(-R+15,R-15);g++;}while(g<80&&(Math.hypot(x,z)<22||inWater(x,z)));addItem('scrap',x,z);}
+  const nCh=arenaId==='desert'?6:arenaId==='wilds'?5:3;for(let i=0;i<nCh;i++){let x,z,g=0;do{x=rnd(-R+20,R-20);z=rnd(-R+20,R-20);g++;}while(g<60&&(Math.hypot(x,z)<30||inWater(x,z)));addItem('charcoal',x,z);}
+  if(arenaId==='wilds'||arenaId==='tundra'){for(let i=0;i<5;i++){const t=pick(TL);if(!t)break;addItem('resin',t.x+rnd(-1.2,1.2),t.z+rnd(-1.2,1.2));}}}
  for(let i=0;i<110;i++){let x,z;do{x=rnd(-R+5,R-5);z=rnd(-R+5,R-5);}while(Math.hypot(x,z)>R-5||inWater(x,z));const w=zoneW(x,z);
   addItem(i<70?(w.high>.5?'food':'berries'):i<92?'food':i<104?'water':pick(pool),x,z);}
  spawnSticks();}
@@ -612,7 +620,7 @@ function makeEnt(cfg,isPlayer){const fig=makeFigure(cfg.look);scene.add(fig);
  if(!isPlayer&&!cfg.noTag)e.tag=makeTag(e);if(e.weapon!=='fists')giveWeaponMesh(fig,e.weapon);return e;}
 function aiLook(excl){const pool=AI_MODELS.filter(m=>!excl.includes(m));return {model:pick(pool),scale:rnd(.88,1.12),cloth:new THREE.Color().setHSL(Math.random(),rnd(.35,.75),rnd(.25,.55)).getHex(),skin:pick(SKINS),hair:new THREE.Color().setHSL(rnd(.02,.12),rnd(.3,.7),rnd(.08,.6)).getHex(),acc:pick(['none','backpack','quiver','bedroll','cape','sash']),accC:new THREE.Color().setHSL(Math.random(),.5,.35).getHex()};}
 function charLook(c){const pal=PALETTES[custom.palette]||PALETTES[0];return {model:c.model,scale:c.scale,acc:custom.accOn===false?'none':(c.acc||'none'),accC:custom.accOn===false?c.accC:(pal.c),skin:c.skin,cloth:pal.c,hair:c.hair};}
-function clearWorld(){ents.forEach(e=>scene.remove(e.fig));ents=[];clearAnimals();clearCamps();clearProjs();clearGifts();}
+function clearWorld(){ents.forEach(e=>scene.remove(e.fig));ents=[];clearAnimals();clearCamps();clearProjs();clearGifts();clearPlaceables();cancelPlaceMode(true);}
 function startGame(opts={}){
  audio();
  if(opts.biome){rebuildArena(opts.biome,opts.seed|0);syncArenaSky();}
@@ -681,7 +689,7 @@ function chuteMesh(){const g=new THREE.Group();
  const ribbon=new THREE.Mesh(new THREE.BoxGeometry(.34,.04,.04),new THREE.MeshStandardMaterial({color:0xc9a227,metalness:.6,roughness:.35}));ribbon.position.y=.24;
  g.add(chute,box,ribbon);g.traverse(o=>{if(o.isMesh)o.castShadow=true;});return g;}
 function giftChime(){if(!ac){audio();if(!ac)return;}const t0=ac.currentTime;[[880,.12],[1100,.12],[1320,.18],[1760,.28]].forEach(([f,d],i)=>{const o=ac.createOscillator(),g=ac.createGain();o.type='sine';o.frequency.value=f;g.gain.setValueAtTime(.0001,t0+i*.1);g.gain.exponentialRampToValueAtTime(.12,t0+i*.1+.03);g.gain.exponentialRampToValueAtTime(.0001,t0+i*.1+d);o.connect(g).connect(ac.destination);o.start(t0+i*.1);o.stop(t0+i*.1+d+.02);});}
-function giftLabel(t){return({food:'rations',water:'water',medicine:'medicine',bandage:'bandages',ammo_arrow:'arrows',ammo_stone:'sling stones',shield:'a shield',spknife:'a sponsor knife',sword:'a sword',bow:'a bow',cloak:'a warm cloak',flask:'a water flask',axe:'an axe',trident:'a trident',mace:'a mace',knife:'a knife'}[t]||t);}
+function giftLabel(t){return({food:'rations',water:'water',medicine:'medicine',bandage:'bandages',ammo_arrow:'arrows',ammo_stone:'sling stones',shield:'a shield',spknife:'a sponsor knife',sword:'a sword',bow:'a bow',cloak:'a warm cloak',flask:'a water flask',axe:'an axe',trident:'a trident',mace:'a mace',knife:'a knife',scrap:'metal scrap',charcoal:'charcoal',resin:'resin'}[t]||t);}
 function pickGiftContents(e,favor,emerg){const f=favor||0,need=[];
  if(e.hp/e.maxhp<.45||emerg)need.push('medicine','bandage');
  if(e.hunger<40||emerg)need.push('food','food');
@@ -692,7 +700,7 @@ function pickGiftContents(e,favor,emerg){const f=favor||0,need=[];
  if(e.weapon==='sling'&&(e.ammo|0)<4)need.push('ammo_stone');
  const tier=f>=75?3:f>=55?2:f>=35?1:0;
  const poolLow=['food','water','bandage','berries'];
- const poolMid=['food','water','medicine','bandage','ammo_arrow','ammo_stone','knife','cloak','flask'];
+ const poolMid=['food','water','medicine','bandage','ammo_arrow','ammo_stone','knife','cloak','flask','scrap','charcoal'];
  const poolHi=['medicine','shield','spknife','bow','sword','ammo_arrow','cloak','flask','axe','trident'];
  const pool=tier>=3?poolHi.concat(poolMid):tier>=2?poolMid.concat(poolHi.slice(0,4)):tier>=1?poolMid:poolLow;
  const out=[];const n=emerg?1:(tier>=2?2:1);
@@ -717,7 +725,10 @@ function openGift(e,g){if(!g||g.opened)return;g.opened=true;giftsVer++;
   else if(t==='food'){e.hunger=Math.min(100,e.hunger+50);e.hp=Math.min(e.maxhp,e.hp+8);}
   else if(t==='water'||t==='flask'){e.thirst=Math.min(100,e.thirst+(t==='flask'?100:55));if(t==='flask')e.flask=1;}
   else if(t==='medicine')e.hp=Math.min(e.maxhp,e.hp+55);
-  else if(t==='bandage')e.hp=Math.min(e.maxhp,e.hp+25);
+  else if(t==='bandage'){e.hp=Math.min(e.maxhp,e.hp+25);e.cloth=(e.cloth||0)+0;}
+  else if(t==='scrap')e.scrap=Math.min(8,(e.scrap||0)+1);
+  else if(t==='charcoal')e.charcoal=Math.min(8,(e.charcoal||0)+1);
+  else if(t==='resin')e.resin=Math.min(6,(e.resin||0)+1);
   else if(t==='ammo_arrow'){if(e.weapon==='bow')e.ammo=(e.ammo||0)+8;else{e.weapon='bow';e.ammo=8;if(e.isPlayer)setWeaponModel();else if(!simMode)giveWeaponMesh(e.fig,'bow');}}
   else if(t==='ammo_stone'){if(e.weapon==='sling')e.ammo=(e.ammo||0)+10;else{e.weapon='sling';e.ammo=10;if(e.isPlayer)setWeaponModel();else if(!simMode)giveWeaponMesh(e.fig,'sling');}}
   else if(t==='cloak')e.cloak=Math.max(e.cloak||0,200);
@@ -798,6 +809,7 @@ function applyHit(a,best,dmg,fx,fz){const blocked=!!(best.blocking||(best.weapon
  if(blocked){dmg*=.25;if(a.isPlayer||best.isPlayer)attackSfx(a.weapon,'block');}
  dmg*=(best.isHuman?.55:1);if(best.isDummy){best.flash=.25;best.lastDmg=dmg;if(a.isPlayer){bubble(best,Math.round(dmg)+' dmg','#a01818');attackSfx(a.weapon,'hit');}tutEvent('hit');return;}
  best.hp-=dmg;best.flash=.2;best.x+=(fx||0)*.45;best.z+=(fz||0)*.45;
+ if((a.poisonCoat||0)>0&&!blocked){a.poisonCoat--;best.poisonT=Math.max(best.poisonT||0,6);if(a.isPlayer)announce(a.poisonCoat?'☠ Poison tip applied':'☠ Poison tip worn off');}
  if(a.isHuman){a.lastHit=best;a.lastHitT=time;best.hitByPlayer=(best.hitByPlayer||0)+1;best.lastHitBy=a;}if(best.isHuman){best.lastAttacker=a;best.lastAttackT=time;}
  if(!best.isPlayer){remember(best,a,true);if(best.state!=='flee')best.target=a;}
  if(!blocked&&(best.isPlayer||a.isPlayer||a.isHuman))attackSfx(a.weapon,'hit');
@@ -830,16 +842,20 @@ function pickup(e){// sponsor parachute first
   else if(t==='ammo_stone'){if(e.weapon==='sling'){e.ammo=(e.ammo||0)+10;if(e.isPlayer)announce('Stones +10');}else{e.weapon='sling';e.ammo=10;if(e.isPlayer){announce('Sling with stones');setWeaponModel();}else giveWeaponMesh(e.fig,'sling');}}
   else if(t==='cloak'){e.cloak=Math.max(e.cloak||0,180);if(e.isPlayer)announce('Warm cloak — protected from cold awhile');}
   else if(t==='flask'){e.thirst=100;e.flask=Math.max(e.flask||0,1);if(e.isPlayer)announce('Sponsor flask — thirst restored');}
+  else if(t==='scrap'){e.scrap=Math.min(8,(e.scrap||0)+1);say(e,`Metal scrap (⚙ ${e.scrap})`);}
+  else if(t==='charcoal'){e.charcoal=Math.min(8,(e.charcoal||0)+1);say(e,`Charcoal (⬛ ${e.charcoal})`);}
+  else if(t==='resin'){e.resin=Math.min(6,(e.resin||0)+1);say(e,`Tree resin (🟤 ${e.resin})`);}
   if(e.isPlayer)tone(660,.1,'triangle',.15,990);return true;}
  if(nearWater(e)){e.thirst=Math.min(100,e.thirst+35);if(e.isPlayer){announce('You drink from the water');tone(500,.15,'sine',.12,300);}return true;}return false;}
 function setCam(){if(player)player.fig.visible=camMode==='third'||!player.alive;fpArms.visible=camMode==='first'&&player&&player.alive;if(player)setWeaponModel();}
 
 // ---------- input ----------
 const keys={};let moveX=0,moveY=0;
-addEventListener('keydown',e=>{keys[e.code]=true;if(!running||simMode)return;if(e.code==='KeyF')cmdOffer();if(e.code==='Digit1')cmdOrder('follow');if(e.code==='Digit2')cmdOrder('hold');if(e.code==='Digit3')cmdOrder('scavenge');if(e.code==='Escape'||e.code==='KeyP')togglePause();if(e.code==='KeyE')cmdUse();if(e.code==='KeyV'){camMode=camMode==='first'?'third':'first';setCam();}if(e.code==='Space')cmdJump();});
+addEventListener('keydown',e=>{keys[e.code]=true;if(!running||simMode)return;if(placeMode&&(e.code==='Escape'||e.code==='KeyQ')){e.preventDefault();cancelPlaceMode(false);return;}if(e.code==='KeyF')cmdOffer();if(e.code==='Digit1')cmdOrder('follow');if(e.code==='Digit2')cmdOrder('hold');if(e.code==='Digit3')cmdOrder('scavenge');if(e.code==='Escape'||e.code==='KeyP')togglePause();if(e.code==='KeyE')cmdUse();if(e.code==='KeyV'){camMode=camMode==='first'?'third':'first';setCam();}if(e.code==='Space')cmdJump();});
 addEventListener('keyup',e=>keys[e.code]=false);
 const cv=renderer.domElement;
-cv.addEventListener('mousedown',()=>{if(!running||isTouch)return;if(document.pointerLockElement!==cv){cv.requestPointerLock?.();$('hint').textContent='';}else cmdAttack();});
+cv.addEventListener('mousedown',e=>{if(!running||isTouch)return;if(placeMode){e.preventDefault();e.stopPropagation();const pm=placeMode;confirmPlace(pm.x??player.x+Math.sin(player.dir)*2.2,pm.z??player.z+Math.cos(player.dir)*2.2);return;}
+ if(document.pointerLockElement!==cv){cv.requestPointerLock?.();$('hint').textContent='';}else cmdAttack();});
 addEventListener('mousemove',e=>{if(document.pointerLockElement===cv){yaw-=e.movementX*.0025;pitch=THREE.MathUtils.clamp(pitch-e.movementY*.0025,-1.3,1.3);}});
 let lookX=0,lookY=0;
 function makeJoy(el,cb){const knob=el.querySelector('.knob');let id=null;const MAX=46;
@@ -856,7 +872,7 @@ document.addEventListener('contextmenu',e=>{if(running)e.preventDefault();});
 function applyLook(dt){const dz=.12,f=v=>{const a=Math.abs(v);return a<dz?0:Math.sign(v)*Math.pow((a-dz)/(1-dz),1.5);};
  yaw-=f(lookX)*2.6*dt;pitch=THREE.MathUtils.clamp(pitch-f(lookY)*1.8*dt,-1.2,1.2);}
 let atkHeld=false,blkHeld=false;
-function btn(k){if(!running)return;if(k==='atk')cmdAttack();if(k==='jump')cmdJump();if(k==='use')cmdUse();if(k==='cam'){camMode=camMode==='first'?'third':'first';setCam();}}
+function btn(k){if(!running)return;if(placeMode&&(k==='use'||k==='atk')){const pm=placeMode;confirmPlace(pm.x??player.x+Math.sin(player.dir)*2.2,pm.z??player.z+Math.cos(player.dir)*2.2);return;}if(k==='atk')cmdAttack();if(k==='jump')cmdJump();if(k==='use')cmdUse();if(k==='cam'){camMode=camMode==='first'?'third':'first';setCam();}}
 document.querySelectorAll('#btns div').forEach(b=>{b.addEventListener('touchstart',e=>{e.preventDefault();e.stopPropagation();audio();if(b.dataset.b==='atk')atkHeld=true;if(b.dataset.b==='block')blkHeld=true;btn(b.dataset.b);},{passive:false});
  b.addEventListener('touchend',e=>{e.preventDefault();if(b.dataset.b==='atk')atkHeld=false;if(b.dataset.b==='block')blkHeld=false;});
  b.addEventListener('mousedown',e=>{e.stopPropagation();if(b.dataset.b==='block'){blkHeld=true;const up=()=>{blkHeld=false;removeEventListener('mouseup',up);};addEventListener('mouseup',up);}btn(b.dataset.b);});});
@@ -867,6 +883,7 @@ function remember(e,o,share){if(o.ghost)return;e.mem.set(o,{x:o.x,z:o.z,t:time})
 function perceive(e){const fx=Math.sin(e.dir),fz=Math.cos(e.dir),night=isNight();
  for(const o of ents){if(o===e||!o.alive||o.ghost||o.isDummy||(e.ally&&o.ally===e.ally)||(o.isHuman&&e.peaceUntil>time&&e.peaceWith===o))continue;const dx=o.x-e.x,dz=o.z-e.z,d=Math.hypot(dx,dz);if(d>50)continue;
   let sightR=(night?15:32)*(o.isHuman?1.25-o.stl*.6:1-o.stl*.3)*(o.hiding?.5:1);
+  if((e.smokeBlind||0)>0)sightR*=.28;if((o.smokeBlind||0)>0)sightR*=.5;
   if(camps.length&&litCampNear(o,6))sightR=night?Math.max(sightR,50):sightR*1.4;
   const noiseR=o.noise*(o.isHuman?1.2-o.stl*.7:1)*(night?1.25:1);
   if(d<noiseR||d<2.5){remember(e,o,true);continue;}
@@ -929,7 +946,7 @@ function collide(e){if(e.climbing)return;for(let i=-1;i<=1;i++)for(let j=-1;j<=1
   const top=obsTop(o);if(e.y>=top-.3)continue;// standing on top — walkable disk
   const dx=e.x-o.x,dz=e.z-o.z,d2=dx*dx+dz*dz,r=o.r+.35;if(d2<r*r&&d2>1e-6){const d=Math.sqrt(d2);e.x=o.x+dx/d*r;e.z=o.z+dz/d*r;}}
  const d=Math.hypot(e.x,e.z);if(d>R-1){e.x*=(R-1)/d;e.z*=(R-1)/d;}}
-function move(e,mx,mz,dt){if(e.climbing)return;const ox=e.x,oz=e.z;let sp=4.6*e.spd*(inWater(e.x,e.z)?.5:1)*(e.hunger<=0||e.thirst<=0?.7:1)*(e.grounded===false?.85:1);if(onIce(e.x,e.z)){e.iceVx=(e.iceVx||0)*0.94+mx*sp*dt*2.2;e.iceVz=(e.iceVz||0)*0.94+mz*sp*dt*2.2;e.x+=e.iceVx;e.z+=e.iceVz;}else{e.iceVx=e.iceVz=0;e.x+=mx*sp*dt;e.z+=mz*sp*dt;}collide(e);e.speed=Math.hypot(e.x-ox,e.z-oz)/dt;}
+function move(e,mx,mz,dt){if(e.climbing)return;const ox=e.x,oz=e.z;let sp=4.6*e.spd*(inWater(e.x,e.z)?.5:1)*(e.hunger<=0||e.thirst<=0?.7:1)*(e.grounded===false?.85:1);if((e.caltropSlow||0)>0){e.caltropSlow-=dt;sp*=.45;}if((e.smokeBlind||0)>0)e.smokeBlind-=dt;if(onIce(e.x,e.z)){e.iceVx=(e.iceVx||0)*0.94+mx*sp*dt*2.2;e.iceVz=(e.iceVz||0)*0.94+mz*sp*dt*2.2;e.x+=e.iceVx;e.z+=e.iceVz;}else{e.iceVx=e.iceVz=0;e.x+=mx*sp*dt;e.z+=mz*sp*dt;}if(placeableBlock(e,e.x,e.z)){e.x=ox;e.z=oz;}collide(e);e.speed=Math.hypot(e.x-ox,e.z-oz)/dt;}
 function grounded(e){const gy=standY(e.x,e.z,e.y);return e.y<=gy+.1&&e.vy<=.15;}
 function climbable(o){return !!(o&&(o.climb||o.b===4||o.corn)&&((o.h||0)>1.1));}
 function findClimb(e,needFace){const fx=Math.sin(e.dir),fz=Math.cos(e.dir);let best=null,bd=6;
@@ -997,6 +1014,8 @@ function updateEnt(e,dt){
  e.hunger-=dt*(e.isHuman?.2:.15)*survK;e.thirst-=dt*(e.isHuman?.27:.2)*survK*thirstK;
  if(e.hunger<0){e.hunger=0;e.hp-=dt*1.5;}if(e.thirst<0){e.thirst=0;e.hp-=dt*2.5;}
  // cold (tundra): drain without fire/shelter
+ if(e.stunT>0){e.stunT-=dt;e.speed=0;if(e.stunT>0){e.fig.position.set(e.x,e.y,e.z);e.fig.rotation.y=e.dir;return;}}
+ if(e.poisonT>0){e.poisonT-=dt;e.hp-=dt*4.5*survK;e.flash=Math.max(e.flash,.08);if(e.hp<=0)return kill(e,'poison');}
  if(e.cloak>0)e.cloak-=dt;if(coldK>0&&!e.isDummy&&!practice){const warm=!!litCampNear(e,5)||!!myCampNear(e,4)||(e.cloak>0)||((e.torchUntil||0)>time);if(!warm)e.hp-=dt*coldK*(isNight()?2.2:1.1)*survK;}
  // sandstorm (desert)
  if(arenaId==='desert'&&hazActive&&!e.isDummy){const shel=!!myCampNear(e,4)||obsNear(e.x,e.z).some(o=>o.b>1&&Math.hypot(o.x-e.x,o.z-e.z)<o.r+1.2);if(!shel){e.hp-=dt*3.5*hazIntensity;e.flash=.1;}}
@@ -1038,7 +1057,7 @@ function hazTick(dt){if(practice||simMode)return;hazT-=dt;
  else if(arenaId==='tundra'){if(hazT<=0){if(!hazActive&&isNight()&&Math.random()<.4){hazActive=true;hazT=rnd(15,28);annAll('❄ Blizzard rolling in!');}else if(hazActive){hazActive=false;hazT=rnd(35,70);annAll('The blizzard eases.');}else hazT=rnd(25,50);}}
  else hazActive=false;}
 function stormR(t){if(practice)return R;const st=STORM_START+stormJitter;return THREE.MathUtils.clamp(R-(t-st)*STORM_SPEED,STORM_MIN,R);}
-function stepWorld(dt){time+=dt;nightCycle();favorTick(dt);giftTick(dt);allyTick(dt);hazTick(dt);zoneR=stormR(time);if(Math.abs(time-(STORM_START+stormJitter))<dt*.6)announce('The firestorm is closing in!');for(const e of ents)updateEnt(e,dt);stepProjs(dt);animalsStep(dt);campsStep(dt);}
+function stepWorld(dt){time+=dt;nightCycle();favorTick(dt);giftTick(dt);allyTick(dt);hazTick(dt);zoneR=stormR(time);if(Math.abs(time-(STORM_START+stormJitter))<dt*.6)announce('The firestorm is closing in!');for(const e of ents)updateEnt(e,dt);stepProjs(dt);animalsStep(dt);campsStep(dt);placeablesStep(dt);placeModeTick(dt);}
 
 // ---------- minimap + fullscreen map ----------
 const mm=$('minimap'),mx=mm.getContext('2d'),MS=240;let mk=MS/2/(R+8);
@@ -1069,6 +1088,8 @@ function paintMap(ctx,size,{big=false}={}){if(!ctx)return;const c=size/2,sc=size
   const gx=c+g.x*sc,gz=c+g.z*sc;ctx.fillStyle='#e8eef8';ctx.strokeStyle='#9aa';ctx.lineWidth=1;
   ctx.beginPath();ctx.moveTo(gx,gz- (big?8:5));ctx.lineTo(gx+(big?7:4),gz+(big?4:2));ctx.lineTo(gx-(big?7:4),gz+(big?4:2));ctx.closePath();ctx.fill();ctx.stroke();}
  for(const k of camps){if(!(k.owner===viewer()||(k.owner&&k.owner.ally&&k.owner.ally===myTeam())))continue;const x=c+k.x*sc,z=c+k.z*sc;ctx.fillStyle=k.lit?'#ff9a2a':'#a87a4a';ctx.strokeStyle='#000';ctx.lineWidth=big?2:1.5;ctx.beginPath();ctx.moveTo(x,z-(big?12:8));ctx.lineTo(x+(big?10:7),z+(big?9:6));ctx.lineTo(x-(big?10:7),z+(big?9:6));ctx.closePath();ctx.fill();ctx.stroke();}
+ for(const p of placeables){if(p.kind!=='fence'&&p.kind!=='torchstake'&&p.kind!=='beartrap')continue;if(!(p.owner===viewer()||(p.owner&&viewer()&&p.owner.ally&&p.owner.ally===viewer().ally)))continue;
+  const x=c+p.x*sc,z=c+p.z*sc;ctx.fillStyle=p.kind==='fence'?'#8a6a3a':p.kind==='torchstake'?'#ffb060':'#888';ctx.beginPath();if(p.kind==='fence'){ctx.save();ctx.translate(x,z);ctx.rotate(-p.dir);ctx.fillRect(-(big?7:4),-(big?2:1),big?14:8,big?4:2);ctx.restore();}else{ctx.arc(x,z,big?4:2.5,0,6.28);ctx.fill();}}
  for(const a of ents)if(a.alive&&a.ally&&a.ally===myTeam()&&a!==viewer()){ctx.fillStyle='#4dff6a';ctx.beginPath();ctx.arc(c+a.x*sc,c+a.z*sc,big?8:6,0,7);ctx.fill();}
  if(player){const px=c+player.x*sc,pz=c+player.z*sc,d=player.dir;ctx.save();ctx.translate(px,pz);ctx.rotate(-d+Math.PI);ctx.fillStyle='#fff';ctx.strokeStyle='#000';ctx.lineWidth=big?2.5:2;ctx.beginPath();ctx.moveTo(0,-arr);ctx.lineTo(arr*.55,arr*.7);ctx.lineTo(0,arr*.35);ctx.lineTo(-arr*.55,arr*.7);ctx.closePath();ctx.fill();ctx.stroke();ctx.restore();}
  ctx.restore();
@@ -1124,7 +1145,7 @@ function loop(){requestAnimationFrame(loop);const dt=Math.min(clock.getDelta(),.
   const sw=player.swing>0?Math.sin((1-player.swing/.3)*Math.PI):0;fpArms.rotation.x=.1-sw*.9;fpArms.position.z=-.5-sw*.15;
   fpArms.position.y=-.3+(player.speed>.5?Math.sin(time*11)*.012:0);}
  hudT-=dt;if(hudT<=0&&player){hudT=.2;$('hp').style.width=Math.max(0,player.hp/player.maxhp*100)+'%';$('hu').style.width=player.hunger+'%';$('th').style.width=player.thirst+'%';if($('favor'))$('favor').style.width=Math.max(0,Math.min(100,player.favor||0))+'%';
-  $('weap').textContent='Weapon: '+WEAPONS[player.weapon].n+(player.ammo?` · ${player.ammo}`:'')+(player.blocking?' · 🛡':'');{let inv=`🪵 Wood ${player.wood||0}  ·  🍖 Raw ${player.meat||0}`;if(player.jerky)inv+=`  ·  🥩 Jerky ${player.jerky}`;if((player.cloth||0)>0)inv+=`  ·  🩹 Cloth ${player.cloth}`;if((player.torchUntil||0)>time)inv+=`  ·  🔥 Torch`;$('inv').textContent=inv;}$('dayl').textContent=`${practice?'Practice · ':''}${arena?arena.tag+' ':''}#${arenaCode(ARENA_SEED)} · Day ${Math.floor(time/dayLen)+1} · ${isNight()?'Night 🌙':'Day ☀'}${hazActive?(arenaId==='desert'?' · 🌪':arenaId==='tundra'?' · ❄':''):''} · ${Math.round(fpsNow)} fps${NET.role==='client'?` · ping ${NET.ping|0}ms`:NET.role==='host'?` · hosting ${NET.conns.length}`:''}`;
+  $('weap').textContent='Weapon: '+WEAPONS[player.weapon].n+(player.ammo?` · ${player.ammo}`:'')+(player.blocking?' · 🛡':'');{let inv=`🪵 Wood ${player.wood||0}  ·  🍖 Raw ${player.meat||0}`;if(player.jerky)inv+=`  ·  🥩 Jerky ${player.jerky}`;if((player.cloth||0)>0)inv+=`  ·  🩹 Cloth ${player.cloth}`;if((player.scrap||0)>0)inv+=`  ·  ⚙ Scrap ${player.scrap}`;if((player.charcoal||0)>0)inv+=`  ·  ⬛ Char ${player.charcoal}`;if((player.resin||0)>0)inv+=`  ·  🟤 Resin ${player.resin}`;if((player.torchUntil||0)>time)inv+=`  ·  🔥 Torch`;if(player.poisonCoat)inv+=`  ·  ☠ Poison`;$('inv').textContent=inv;}$('dayl').textContent=`${practice?'Practice · ':''}${arena?arena.tag+' ':''}#${arenaCode(ARENA_SEED)} · Day ${Math.floor(time/dayLen)+1} · ${isNight()?'Night 🌙':'Day ☀'}${hazActive?(arenaId==='desert'?' · 🌪':arenaId==='tundra'?' · ❄':''):''} · ${Math.round(fpsNow)} fps${NET.role==='client'?` · ping ${NET.ping|0}ms`:NET.role==='host'?` · hosting ${NET.conns.length}`:''}`;
   $('zonename').textContent=zoneName(player.x,player.z);drawMinimap();
   let near=items.some(it=>Math.hypot(it.x-player.x,it.z-player.z)<2.6);const nearGift=running&&player&&gifts.some(g=>g.landed&&!g.opened&&Math.hypot(g.x-player.x,g.z-player.z)<2.8);const climbP=running&&player&&!player.climbing&&findClimb(player,true);$('hint').textContent=nearGift?(isTouch?'Tap GRAB — sponsor gift':'Press E — open sponsor gift'):player&&player.climbing?(isTouch?'Up to top out · JUMP near lip':'W/S climb · Space near top to mantle'):climbP?(isTouch?'JUMP to climb':'Space / JUMP to climb'):running&&near?(isTouch?'Tap GRAB to pick up':'Press E to pick up'):running&&nearWater(player)?(isTouch?'Tap GRAB to drink':'Press E to drink'):(!isTouch&&running&&document.pointerLockElement!==cv?'Click to lock mouse':'');updateAllyUI();}
  for(const it of items)if(it.type in WEAPONS)it.m.rotation.y+=dt*.8;
@@ -1303,7 +1324,8 @@ function hostOnData(c,m){const L=NET.lobby;let p=L.find(x=>x.conn===c);
  if(m.t==='hello'){if(!p){p={name:m.name,char:m.char|0,conn:c};L.push(p);}pushLobby();return;}
  if(m.t==='char'&&p){p.char=m.char|0;pushLobby();return;}
  if(m.t==='ping'){netSend(c,{t:'pong',ts:m.ts});return;}
- if(m.t==='camp'&&p&&p.ent){if(m.a==='wake')wakeUp(p.ent,'');else campAction(p.ent,m.a);return;}
+ if(m.t==='camp'&&p&&p.ent){if(m.a==='wake')wakeUp(p.ent,'');else if(PLACE_CRAFTS.has(m.a))craftAndPlace(p.ent,m.a);else campAction(p.ent,m.a);return;}
+ if(m.t==='place'&&p&&p.ent){const kind=m.kind;if(!PLACE_LIMITS[kind]&&kind!=='smoke')return;spawnPlaceable(kind,m.x,m.z,m.dir||p.ent.dir,p.ent);return;}
  if(m.t==='aid'&&p&&p.ent){const was=player;player=p.ent;requestAid();player=was;return;}
  const e=p&&p.ent;if(!e)return;
  if(m.t==='in'){e.inp=m;}
@@ -1321,8 +1343,8 @@ function hostStart(){sel=NET.myChar;const biome=ARENAS[Math.floor(Math.random()*
 function q(v,k=100){return Math.round(v*k)/k;}
 function hostTick(dt){NET.snapT-=dt;if(NET.snapT>0||!NET.conns.length)return;NET.snapT=1/12;
  const E=ents.map(e=>[q(e.x),q(e.z),q(e.y),q(e.dir),Math.round(e.hp),q(e.speed,10),e.alive?1:0,WI.indexOf(e.weapon),e.swing>.2?1:0,e.ally||0,e.flash>0?1:0]);
- const base={t:'s',time:q(time,10),zr:q(zoneR,10),e:E,a:animalSnap(),c:campSnap(),g:giftSnap()};if(NET.sentVer!==itemsVer){base.items=items.map(i=>[i.id,i.type,q(i.x),q(i.z)]);NET.sentVer=itemsVer;}
- for(const p of NET.lobby.slice(1)){const e=p.ent;if(!e)continue;const c=allyCandidate(e);netSend(p.conn,{...base,me:{hu:Math.round(e.hunger),th:Math.round(e.thirst),cand:c?ents.indexOf(c):-1,order:e.order||'follow',wd:e.wood||0,mt:e.meat||0,sl:e.sleeping?1:0,kills:e.kills,ammo:e.ammo|0,bl:e.blocking?1:0,fv:Math.round(e.favor||0)}});}}
+ const base={t:'s',time:q(time,10),zr:q(zoneR,10),e:E,a:animalSnap(),c:campSnap(),g:giftSnap(),p:placeSnap()};if(NET.sentVer!==itemsVer){base.items=items.map(i=>[i.id,i.type,q(i.x),q(i.z)]);NET.sentVer=itemsVer;}
+ for(const p of NET.lobby.slice(1)){const e=p.ent;if(!e)continue;const c=allyCandidate(e);netSend(p.conn,{...base,me:{hu:Math.round(e.hunger),th:Math.round(e.thirst),cand:c?ents.indexOf(c):-1,order:e.order||'follow',wd:e.wood||0,mt:e.meat||0,sl:e.sleeping?1:0,kills:e.kills,ammo:e.ammo|0,bl:e.blocking?1:0,fv:Math.round(e.favor||0),sc:e.scrap|0,ch:e.charcoal|0,rs:e.resin|0,cl:e.cloth|0}});}}
 // ---- client side ----
 function clientOnData(m){
  if(m.t==='lobby'){NET.lobby=m.players;NET.code=m.code;renderLobby();return;}
@@ -1352,8 +1374,8 @@ function clientSnap(m){time=m.time;zoneR=m.zr;NET.lastSnap=performance.now();if(
   if(sw&&!e.netSw)playOnce(e.fig,w==='fists'?'punch':'slash',.5);e.netSw=sw;if(sw&&e===player)player.swing=.3;
   if((e.ally||0)!==ally){e.ally=ally;for(const o of ents)refreshTag(o);}});
  if(m.items){const keep=new Set(m.items.map(i=>i[0]));for(const it of items.slice())if(!keep.has(it.id)){scene.remove(it.m);items.splice(items.indexOf(it),1);}const have=new Set(items.map(i=>i.id));for(const [id,t,x,z] of m.items)if(!have.has(id))addItem(t,x,z,id);}
- if(m.me&&player){player.hunger=m.me.hu;player.thirst=m.me.th;NET.cand=m.me.cand;NET.order=m.me.order;player.kills=m.me.kills;player.wood=m.me.wd;player.meat=m.me.mt;if(m.me.ammo!=null)player.ammo=m.me.ammo;player.blocking=!!m.me.bl;player.blockHeld=player.blocking;if(m.me.fv!=null)player.favor=m.me.fv;if(!m.me.sl&&player.sleeping)$('sleepOv').classList.add('hidden');player.sleeping=!!m.me.sl;}
- if(m.a)clientAnimals(m.a);if(m.c)clientCamps(m.c);if(m.g)clientGifts(m.g);
+ if(m.me&&player){player.hunger=m.me.hu;player.thirst=m.me.th;NET.cand=m.me.cand;NET.order=m.me.order;player.kills=m.me.kills;player.wood=m.me.wd;player.meat=m.me.mt;if(m.me.ammo!=null)player.ammo=m.me.ammo;player.blocking=!!m.me.bl;player.blockHeld=player.blocking;if(m.me.fv!=null)player.favor=m.me.fv;if(m.me.sc!=null)player.scrap=m.me.sc;if(m.me.ch!=null)player.charcoal=m.me.ch;if(m.me.rs!=null)player.resin=m.me.rs;if(m.me.cl!=null)player.cloth=m.me.cl;if(!m.me.sl&&player.sleeping)$('sleepOv').classList.add('hidden');player.sleeping=!!m.me.sl;}
+ if(m.a)clientAnimals(m.a);if(m.c)clientCamps(m.c);if(m.g)clientGifts(m.g);if(m.p)clientPlaceables(m.p);
  updateCount();}
 function clientStep(dt){if(NET.lastSnap&&performance.now()-NET.lastSnap>20000){clientHostLeft();return;}const k=Math.min(1,dt*12);for(const e of ents){if(!e.net)continue;e.x+=(e.net.x-e.x)*k;e.z+=(e.net.z-e.z)*k;e.y+=(e.net.y-e.y)*k;let dd=e.net.dir-e.dir;dd=Math.atan2(Math.sin(dd),Math.cos(dd));e.dir+=dd*k;
   e.flash=Math.max(0,(e.flash||0)-dt);e.swing=Math.max(0,(e.swing||0)-dt);e.fig.position.set(e.x,e.y,e.z);e.fig.rotation.y=e.dir;}
@@ -1446,7 +1468,8 @@ function animalAttack(a,dt){const K=a.K,t=a.target;if(!t||!t.alive)return false;
  if(d<K.rng*.8){face(a,Math.atan2(dx,dz),dt,10);return true;}return false;}
 function animalMove(a,dt){const dx=a.tx-a.x,dz=a.tz-a.z,d=Math.hypot(dx,dz);a.speed=0;if(d<1||a.pace<=0)return;
  const [sx,sz]=steerDir(a,dx,dz);const night=isNight();let sp=a.K.spd*a.pace*(a.pace<.7?.45:1)*(a.kind==='wolf'&&night?1.12:1);if(a.state==='flee'&&a.K.prey){a.tire=(a.tire||0)+dt;if(a.tire>6)sp*=.45;}else a.tire=Math.max(0,(a.tire||0)-dt*.5);
- const ox=a.x,oz=a.z;let nx=a.x+sx*sp*dt,nz=a.z+sz*sp*dt;if(inWater(nx,nz)&&!inWater(a.x,a.z)){a.tx=a.x-dx;a.tz=a.z-dz;return;}a.x=nx;a.z=nz;collide(a);face(a,Math.atan2(sx,sz),dt,7);a.speed=Math.hypot(a.x-ox,a.z-oz)/dt;}
+ if((a.caltropSlow||0)>0)sp*=.4;
+ const ox=a.x,oz=a.z;let nx=a.x+sx*sp*dt,nz=a.z+sz*sp*dt;if(inWater(nx,nz)&&!inWater(a.x,a.z)){a.tx=a.x-dx;a.tz=a.z-dz;return;}if(placeableBlock(a,nx,nz)){a.tx=a.x-sx*4;a.tz=a.z-sz*4;return;}a.x=nx;a.z=nz;collide(a);face(a,Math.atan2(sx,sz),dt,7);a.speed=Math.hypot(a.x-ox,a.z-oz)/dt;}
 function hitAnimal(a,dmg,by){if(!a.alive)return;a.hp-=dmg;a.flash=.2;const l=Math.hypot(a.x-by.x,a.z-by.z)||1;a.x+=(a.x-by.x)/l*.5;a.z+=(a.z-by.z)/l*.5;by.noise=Math.max(by.noise||0,22);
  if(by.isPlayer){tone(300,.08,'square',.1,200);if(!simMode&&a.alive)bubble(a,Math.round(dmg)+'','#a01818');}
  if(a.K.prey&&!a.K.fights){a.fleeT=time+5;a.think=0;}else{a.target=by;a.angryT=time+(a.K.fights?7:12);a.think=0;}
@@ -1476,6 +1499,8 @@ function animalsStep(dt){if(practice&&animals.some(a=>a.K.pred))return;
   if(Math.hypot(a.x,a.z)>zoneR+3){a.hp-=dt*10;if(a.hp<=0){a.alive=false;a.deadT=time;if(a.fig)aAnim(a,'death');continue;}}
   if(a.K.mutt&&time-a.born>100&&!humansNear(a.x,a.z,40)){if(a.fig)scene.remove(a.fig);animals.splice(i,1);continue;}
   a.cd-=dt;a.flash=Math.max(0,a.flash-dt);a.swing=Math.max(0,a.swing-dt);
+  if((a.stunT||0)>0){a.stunT-=dt;a.speed=0;a.y=Math.max(H(a.x,a.z),WL-.6);if(a.fig){a.fig.position.set(a.x,a.y,a.z);a.fig.rotation.y=a.dir;}continue;}
+  if((a.caltropSlow||0)>0)a.caltropSlow-=dt;
   const dp=player&&!player.ghost?Math.hypot(a.x-player.x,a.z-player.z):0;
   a.think-=dt;if(a.think<=0){a.think=dp<60?rnd(.25,.45):rnd(.8,1.4);animalThink(a);}
   const fear=a.kind==='wolf'&&a.state==='chase'&&a.target&&camps.length?litCampNear(a.target,7):null;
@@ -1513,7 +1538,7 @@ Object.assign(window.__game,{animals:()=>animals.map(a=>({id:a.id,kind:a.kind,x:
 Object.defineProperty(window.__game,'time',{get:()=>time});
 
 // ---------- camping ----------
-const WOOD_COST=4,WOOD_MAX=12,MEAT_MAX=4;let camps=[],campId=0;
+const WOOD_COST=4,WOOD_MAX=16,MEAT_MAX=4;let camps=[],campId=0;
 const logMat=new THREE.MeshStandardMaterial({color:0x5a3a20,roughness:.95}),flameMat=new THREE.MeshBasicMaterial({color:0xff7a1a,transparent:true,opacity:.85,fog:false}),flameMat2=new THREE.MeshBasicMaterial({color:0xffd060,transparent:true,opacity:.9,fog:false}),
  tentMat=new THREE.MeshStandardMaterial({color:0x8c7a52,roughness:.9,side:THREE.DoubleSide}),bedMat=new THREE.MeshStandardMaterial({color:0x2f4f7a,roughness:.9}),ashMat=new THREE.MeshStandardMaterial({color:0x222222,roughness:1});
 const campLight=new THREE.PointLight(0xff9040,0,16,1.5);scene.add(campLight);const torchLight=new THREE.PointLight(0xffb060,0,11,2);scene.add(torchLight);
@@ -1533,9 +1558,11 @@ function campMesh(){const g=new THREE.Group(),fire=new THREE.Group();g.add(fire)
  const decoy=new THREE.Group();const post=new THREE.Mesh(new THREE.CylinderGeometry(.05,.05,1.4,5),logMat);post.position.y=.7;const body=new THREE.Mesh(new THREE.CylinderGeometry(.22,.2,.5,6),tentMat);body.position.y=1.15;const head=new THREE.Mesh(new THREE.SphereGeometry(.16,6,5),new THREE.MeshStandardMaterial({color:0xc8a860,roughness:.9}));head.position.y=1.55;const arm=new THREE.Mesh(new THREE.CylinderGeometry(.03,.03,.9,4),logMat);arm.rotation.z=Math.PI/2;arm.position.y=1.2;decoy.add(post,body,head,arm);decoy.position.set(-2.0,0,-.4);decoy.visible=false;g.add(decoy);
  const alarm=new THREE.Group();const w1=new THREE.Mesh(new THREE.CylinderGeometry(.015,.015,2.4,4),new THREE.MeshBasicMaterial({color:0xddd}));w1.rotation.z=Math.PI/2;w1.position.set(0,.35,1.8);alarm.add(w1);alarm.visible=false;g.add(alarm);
  const lean=new THREE.Group();const flap=new THREE.Mesh(new THREE.PlaneGeometry(2.4,1.2),new THREE.MeshStandardMaterial({color:0x6a5a3a,roughness:.95,side:THREE.DoubleSide}));flap.position.set(0,.9,-2.9);flap.rotation.x=-.3;lean.add(flap);lean.visible=false;g.add(lean);
- g.traverse(o=>{if(o.isMesh&&o.material!==flameMat&&o.material!==flameMat2)o.castShadow=true;});g.userData={flames,snare,rack,coll,decoy,alarm,lean};return g;}
-function campSet(c){if(!c.fig)return;const u=c.fig.userData;u.flames.visible=c.lit;u.snare.visible=!!c.snare;if(u.rack)u.rack.visible=!!c.rack;if(u.coll)u.coll.visible=!!c.collector;if(u.decoy)u.decoy.visible=!!c.decoy;if(u.alarm)u.alarm.visible=!!c.alarm;if(u.lean)u.lean.visible=!!c.leanUp;}
-function addCamp(owner,x,z,dir,o={}){removeCamp(owner);const c={id:o.id??campId++,owner,x,z,dir,lit:o.lit??true,snare:false,snareT:0,rack:false,rackMeat:0,rackT:0,collector:false,collectorT:0,leanUp:false,alarm:false,alarmLast:0,decoy:false,fig:null};if(!simMode){c.fig=campMesh();c.fig.position.set(x,H(x,z),z);c.fig.rotation.y=dir;scene.add(c.fig);campSet(c);}camps.push(c);if(owner)owner.camp=c;return c;}
+ const gate=new THREE.Group();const gp=new THREE.Mesh(new THREE.BoxGeometry(1.6,1.3,.12),logMat);gp.position.set(0,.65,2.0);const bar=new THREE.Mesh(new THREE.BoxGeometry(1.7,.08,.08),new THREE.MeshStandardMaterial({color:0x8a9098,metalness:.5,roughness:.4}));bar.position.set(0,.9,2.08);gate.add(gp,bar);gate.visible=false;g.add(gate);
+ const barrel=new THREE.Group();const br=new THREE.Mesh(new THREE.CylinderGeometry(.28,.3,.55,10),new THREE.MeshStandardMaterial({color:0x5a3a20,roughness:.85}));br.position.set(1.5,.28,1.0);barrel.add(br);barrel.visible=false;g.add(barrel);
+ g.traverse(o=>{if(o.isMesh&&o.material!==flameMat&&o.material!==flameMat2)o.castShadow=true;});g.userData={flames,snare,rack,coll,decoy,alarm,lean,gate,barrel};return g;}
+function campSet(c){if(!c.fig)return;const u=c.fig.userData;u.flames.visible=c.lit;u.snare.visible=!!c.snare;if(u.rack)u.rack.visible=!!c.rack;if(u.coll)u.coll.visible=!!c.collector;if(u.decoy)u.decoy.visible=!!c.decoy;if(u.alarm)u.alarm.visible=!!c.alarm;if(u.lean)u.lean.visible=!!c.leanUp;if(u.gate)u.gate.visible=!!c.gate;if(u.barrel)u.barrel.visible=!!c.barrel;}
+function addCamp(owner,x,z,dir,o={}){removeCamp(owner);const c={id:o.id??campId++,owner,x,z,dir,lit:o.lit??true,snare:false,snareT:0,rack:false,rackMeat:0,rackT:0,collector:false,collectorT:0,leanUp:false,alarm:false,alarmLast:0,decoy:false,gate:false,barrel:false,fig:null};if(!simMode){c.fig=campMesh();c.fig.position.set(x,H(x,z),z);c.fig.rotation.y=dir;scene.add(c.fig);campSet(c);}camps.push(c);if(owner)owner.camp=c;return c;}
 function removeCamp(owner){if(!owner)return;for(const c of camps.filter(c=>c.owner===owner)){if(c.fig)scene.remove(c.fig);camps.splice(camps.indexOf(c),1);}owner.camp=null;}
 function clearCamps(){for(const c of camps)if(c.fig)scene.remove(c.fig);camps=[];}
 function litCampNear(o,r=6){for(const c of camps)if(c.lit&&Math.hypot(c.x-o.x,c.z-o.z)<r)return c;return null;}
@@ -1573,7 +1600,7 @@ function sleepTick(e,dt){const c=myCampNear(e,6);if(!c){wakeUp(e,'');return fals
 function campsStep(dt){for(const c of camps){if(c.owner&&!c.owner.alive&&c.owner.isAnimal)continue;
   if(c.snare&&time>c.snareT){c.snareT=time+rnd(60,110);const o=c.owner;if(o&&o.alive&&Math.hypot(o.x-c.x,o.z-c.z)>5||Math.random()<.5){const a=c.dir;addItem('meat',c.x+Math.cos(a)*2.2,c.z-Math.sin(a)*2.2);if(o&&o.isHuman)say(o,'🪤 Your snare caught a rabbit!');}}
   if(c.rack&&c.rackMeat>0&&time>c.rackT){c.rackMeat--;const o=c.owner;if(o&&o.alive){o.jerky=(o.jerky||0)+1;if(o.isHuman)say(o,'🥩 Jerky finished drying');}if(c.rackMeat>0)c.rackT=time+38;}
-  if(c.collector&&time>(c.collectorT||0)){c.collectorT=time+rnd(40,70);const o=c.owner;if(o&&o.alive){o.thirst=Math.min(100,o.thirst+32);if(o.isHuman)say(o,arenaId==='tundra'?'❄ Snow melt — thirst +32':'🌧 Rain collector — thirst +32');}}
+  if(c.collector&&time>(c.collectorT||0)){c.collectorT=time+rnd(c.barrel?28:40,c.barrel?48:70);const o=c.owner;if(o&&o.alive){const amt=c.barrel?48:32;o.thirst=Math.min(100,o.thirst+amt);if(o.isHuman)say(o,c.barrel?('💧 Water barrel — thirst +'+amt):(arenaId==='tundra'?'❄ Snow melt — thirst +32':'🌧 Rain collector — thirst +32'));}}
   if(c.alarm&&c.owner&&c.owner.alive&&time-(c.alarmLast||0)>10){for(const o of ents){if(o===c.owner||!o.alive||o.isDummy||o.ghost||(c.owner.ally&&o.ally===c.owner.ally))continue;if(Math.hypot(o.x-c.x,o.z-c.z)<14){c.alarmLast=time;if(c.owner.isHuman)say(c.owner,'🔔 Tripwire! Intruder near camp');if(c.owner.sleeping)wakeUp(c.owner,'Tripwire alarm!');break;}}}
   if(c.decoy){for(const a of animals){if(!a.alive||!a.K.pred)continue;const d=Math.hypot(a.x-c.x,a.z-c.z);if(d<30&&d>3&&Math.random()<dt*.25){a.tx=c.x+rnd(-1.5,1.5);a.tz=c.z+rnd(-1.5,1.5);a.target=null;a.state='hunt';}}}}}
 function campsVisual(dt){let best=null,bd=45;for(const c of camps){if(!c.fig)continue;const f=c.fig.userData.flames;if(c.lit){const t=performance.now()/1000+c.id;f.scale.set(1+Math.sin(t*13)*.08,1+Math.sin(t*9.3)*.18,1+Math.cos(t*11)*.08);}
@@ -1583,9 +1610,128 @@ function campsVisual(dt){let best=null,bd=45;for(const c of camps){if(!c.fig)con
 function aiCamp(e,st){if(e.camp||e.isHuman||camps.length>=8||!isNight()||!(st==='rest'||st==='ambush'))return;if(!(e.pers==='hider'||e.pers==='scavenger'&&Math.random()<.4))return;if(Math.random()>.08||inCombat(e)||nearWater(e))return;
  addCamp(e,e.x,e.z,e.dir,{lit:Math.random()<.45});e.ambushSpot=[e.x,e.z];}
 function allyCamp(e){const h=e.leader;if(!h||!h.alive||!h.sleeping||!h.camp)return false;const c=h.camp,idx=teamAllies(h).indexOf(e),a=c.dir+1.6+idx*1.4;e.state='guard';e.target=null;e.tx=c.x+Math.sin(a)*3;e.tz=c.z+Math.cos(a)*3;e.pace=.6;e.hiding=false;return true;}
-function chopTree(a){const fx=Math.sin(a.dir),fz=Math.cos(a.dir);for(const o of obsNear(a.x+fx*1.5,a.z+fz*1.5)){if(o.b!==4)continue;const dx=o.x-a.x,dz=o.z-a.z,d=Math.hypot(dx,dz);if(d<2.6&&(dx*fx+dz*fz)/(d||1)>.3){if((a.wood||0)>=WOOD_MAX)return say(a,'You can\'t carry more wood'),true;a.wood=(a.wood||0)+1;say(a,`Chopped wood (🪵 ${a.wood})`);if(a.isPlayer)tone(170,.1,'square',.12,120);return true;}}return false;}
+function chopTree(a){const fx=Math.sin(a.dir),fz=Math.cos(a.dir);for(const o of obsNear(a.x+fx*1.5,a.z+fz*1.5)){if(o.b!==4)continue;const dx=o.x-a.x,dz=o.z-a.z,d=Math.hypot(dx,dz);if(d<2.6&&(dx*fx+dz*fz)/(d||1)>.3){if((a.wood||0)>=WOOD_MAX)return say(a,'You can\'t carry more wood'),true;a.wood=(a.wood||0)+1;if(Math.random()<.22){a.resin=Math.min(6,(a.resin||0)+1);say(a,`Chopped wood + resin (🪵 ${a.wood} · 🟤 ${a.resin})`);}else say(a,`Chopped wood (🪵 ${a.wood})`);if(a.isPlayer)tone(170,.1,'square',.12,120);return true;}}return false;}
 function spawnSticks(){let n=0,g=0;while(n<70&&g++<2000){const t=pick(TL);if(Math.hypot(t.x,t.z)>R-8)continue;const a=rnd(0,6.28),x=t.x+Math.cos(a)*1.6,z=t.z+Math.sin(a)*1.6;if(inWater(x,z))continue;addItem('sticks',x,z);n++;}
  for(let i=0;i<6;i++){const a=rnd(0,6.28),r=rnd(18,30);addItem('sticks',Math.cos(a)*r,Math.sin(a)*r);}}
+/* ---- placeables / advanced craft ---- */
+let placeables=[],placeId=0,placeMode=null,placeGhost=null;
+const PLACE_LIMITS={beartrap:8,fence:16,dynamite:3,caltrop:10,torchstake:6,smoke:4};
+function clearPlaceables(){for(const p of placeables){if(p.m)scene.remove(p.m);if(p.light)scene.remove(p.light);}placeables=[];placeId=0;}
+function countPlace(owner,kind){let n=0;for(const p of placeables)if(p.owner===owner&&p.kind===kind&&!p.spent)n++;return n;}
+function placeMesh(kind){const g=new THREE.Group();
+ if(kind==='beartrap'){const base=new THREE.Mesh(new THREE.CylinderGeometry(.32,.32,.06,10),new THREE.MeshStandardMaterial({color:0x4a4e52,metalness:.55,roughness:.45}));base.position.y=.03;
+  const jaw=new THREE.Mesh(new THREE.TorusGeometry(.3,.035,5,14,Math.PI),new THREE.MeshStandardMaterial({color:0x6a7078,metalness:.6,roughness:.4}));jaw.rotation.x=Math.PI/2;jaw.position.y=.08;g.add(base,jaw);}
+ else if(kind==='fence'){const post=new THREE.Mesh(new THREE.CylinderGeometry(.05,.06,.95,5),logMat);post.position.set(-.7,.48,0);const post2=post.clone();post2.position.x=.7;
+  for(let i=0;i<3;i++){const rail=new THREE.Mesh(new THREE.BoxGeometry(1.5,.07,.07),logMat);rail.position.set(0,.25+i*.25,0);g.add(rail);}
+  const spike=new THREE.Mesh(new THREE.ConeGeometry(.06,.28,5),new THREE.MeshStandardMaterial({color:0x8a9098,metalness:.4,roughness:.5}));spike.position.set(0,.1,.12);for(let i=-2;i<=2;i++){const s=spike.clone();s.position.set(i*.28,.95,.05);g.add(s);}g.add(post,post2);}
+ else if(kind==='dynamite'){const stick=new THREE.Mesh(new THREE.CylinderGeometry(.07,.07,.38,8),new THREE.MeshStandardMaterial({color:0xa01818,roughness:.7}));stick.position.y=.2;stick.rotation.z=.2;const fuse=new THREE.Mesh(new THREE.CylinderGeometry(.012,.012,.2,4),new THREE.MeshStandardMaterial({color:0xd8c080}));fuse.position.set(.02,.42,0);g.add(stick,fuse);}
+ else if(kind==='caltrop'){for(let i=0;i<4;i++){const sp=new THREE.Mesh(new THREE.ConeGeometry(.05,.22,4),new THREE.MeshStandardMaterial({color:0x666,metalness:.5,roughness:.45}));const a=i*1.57;sp.position.set(Math.cos(a)*.08,.1,Math.sin(a)*.08);sp.rotation.z=a;g.add(sp);}}
+ else if(kind==='torchstake'){const pole=new THREE.Mesh(new THREE.CylinderGeometry(.04,.05,1.4,5),logMat);pole.position.y=.7;const flame=new THREE.Mesh(new THREE.ConeGeometry(.1,.28,6),flameMat);flame.position.y=1.45;g.add(pole,flame);}
+ else if(kind==='smoke'){const pot=new THREE.Mesh(new THREE.SphereGeometry(.18,8,6),new THREE.MeshStandardMaterial({color:0x555,roughness:.9}));pot.position.y=.18;g.add(pot);}
+ g.traverse(o=>{if(o.isMesh)o.castShadow=true;});return g;}
+function ghostMat(m){m=m.clone();m.transparent=true;m.opacity=.45;m.depthWrite=false;return m;}
+function makeGhost(kind){const g=placeMesh(kind);g.traverse(o=>{if(o.isMesh)o.material=ghostMat(o.material);});g.renderOrder=9;return g;}
+function takeMat(e,need){// need:{wood,scrap,charcoal,cloth,resin,meat}
+ if((need.wood||0)>(e.wood||0))return false;if((need.scrap||0)>(e.scrap||0))return false;if((need.charcoal||0)>(e.charcoal||0))return false;
+ if((need.cloth||0)>(e.cloth||0))return false;if((need.resin||0)>(e.resin||0))return false;if((need.meat||0)>(e.meat||0))return false;
+ if(need.wood)e.wood-=need.wood;if(need.scrap)e.scrap-=need.scrap;if(need.charcoal)e.charcoal-=need.charcoal;
+ if(need.cloth)e.cloth-=need.cloth;if(need.resin)e.resin-=need.resin;if(need.meat)e.meat-=need.meat;return true;}
+function refundMat(e,need){if(!e||!need)return;if(need.wood)e.wood=(e.wood||0)+need.wood;if(need.scrap)e.scrap=(e.scrap||0)+need.scrap;if(need.charcoal)e.charcoal=(e.charcoal||0)+need.charcoal;if(need.cloth)e.cloth=(e.cloth||0)+need.cloth;if(need.resin)e.resin=(e.resin||0)+need.resin;if(need.meat)e.meat=(e.meat||0)+need.meat;}
+function recipeFor(kind,e){
+ if(kind==='beartrap'){if((e.scrap||0)>=1)return {wood:2,scrap:1};return {wood:3,knife:1};}
+ if(kind==='fence')return {wood:2};
+ if(kind==='dynamite'){if((e.resin||0)>=1)return {charcoal:1,resin:1,cloth:1};return {charcoal:1,scrap:1,cloth:1};}
+ if(kind==='smoke')return {charcoal:1,cloth:1};
+ if(kind==='caltrop'){if((e.scrap||0)>=1)return {scrap:1};return {wood:2};}
+ if(kind==='torchstake')return {wood:2};
+ if(kind==='gate')return {wood:4,scrap:1};
+ if(kind==='barrel')return {wood:3};
+ if(kind==='poison')return {cloth:1,resin:1};
+ if(kind==='char')return {wood:1};
+ return null;}
+function canCraftKind(e,kind){const lim=PLACE_LIMITS[kind];if(lim!=null&&countPlace(e,kind)>=lim)return false;
+ if(kind==='gate'||kind==='barrel'){const c=myCampNear(e,4.5);if(!c)return false;if(kind==='gate'&&c.gate)return false;if(kind==='barrel'&&c.barrel)return false;}
+ if(kind==='poison'&&(e.poisonCoat||0)>0)return false;
+ const r=recipeFor(kind,e);if(!r)return false;
+ if(r.knife&&!(e.weapon==='knife'||e.weapon==='throwknife'||e.weapon==='spknife'))return false;
+ if(r.wood&&(e.wood||0)<r.wood)return false;if(r.scrap&&(e.scrap||0)<r.scrap)return false;
+ if(r.charcoal&&(e.charcoal||0)<r.charcoal)return false;if(r.cloth&&(e.cloth||0)<r.cloth)return false;
+ if(r.resin&&(e.resin||0)<r.resin)return false;return true;}
+function costLabel(kind,e){const r=recipeFor(kind,e);if(!r)return '';
+ const bits=[];if(r.wood)bits.push(r.wood+' wood');if(r.scrap)bits.push(r.scrap+' scrap');if(r.charcoal)bits.push(r.charcoal+' charcoal');
+ if(r.cloth)bits.push(r.cloth+' cloth');if(r.resin)bits.push(r.resin+' resin');if(r.knife)bits.push('knife');return bits.join(' + ');}
+function startPlaceMode(e,kind,need){if(NET.role==='client'){netSend(NET.conn,{t:'placeStart',kind});}
+ cancelPlaceMode(true);placeMode={owner:e,kind,need,dir:e.dir};if(!simMode){placeGhost=makeGhost(kind);scene.add(placeGhost);}
+ if(e.isPlayer&&!simMode){announce((isTouch?'Tap':'Click')+' to place · Esc cancel');$('hint').textContent=isTouch?'Tap to place · open Keys/back to cancel':'Click to place · Esc to cancel';}
+ toggleCampMenu(false);}
+function cancelPlaceMode(silent){if(placeGhost){scene.remove(placeGhost);placeGhost=null;}const pm=placeMode;placeMode=null;
+ if(pm&&!silent&&pm.need)refundMat(pm.owner,pm.need);if(pm&&pm.need&&pm.need.knifeUsed){/* knife already spent */}
+ if(!silent&&pm&&pm.owner&&pm.owner.isPlayer)announce('Placement cancelled');}
+function placeModeTick(dt){if(!placeMode||!placeGhost||!player)return;const e=placeMode.owner||player;
+ const fx=Math.sin(e.dir),fz=Math.cos(e.dir);let x=e.x+fx*2.2,z=e.z+fz*2.2;
+ if(placeMode.kind==='fence'){x=e.x+fx*1.8;z=e.z+fz*1.8;}
+ placeMode.x=x;placeMode.z=z;placeMode.dir=e.dir;placeGhost.position.set(x,H(x,z),z);placeGhost.rotation.y=e.dir;
+ const ok=!inWater(x,z)&&Math.hypot(x,z)<zoneR-3;placeGhost.visible=true;placeGhost.traverse(o=>{if(o.isMesh)o.material.opacity=ok?.5:.22});}
+function confirmPlace(x,z){if(!placeMode)return false;if(NET.role==='client'){netSend(NET.conn,{t:'place',kind:placeMode.kind,x,z,dir:placeMode.dir});cancelPlaceMode(true);return true;}
+ const e=placeMode.owner,kind=placeMode.kind,dir=placeMode.dir||e.dir;
+ if(inWater(x,z)||Math.hypot(x,z)>zoneR-3){if(e.isPlayer)announce('Cannot place there');return false;}
+ if(PLACE_LIMITS[kind]!=null&&countPlace(e,kind)>=PLACE_LIMITS[kind]){if(e.isPlayer)announce('Limit reached');cancelPlaceMode(false);return false;}
+ spawnPlaceable(kind,x,z,dir,e);placeMode.need=null;cancelPlaceMode(true);
+ if(e.isPlayer)announce({beartrap:'Bear trap armed',fence:'Spike barricade set',dynamite:'Dynamite planted — fuse lit!',caltrop:'Caltrops scattered',torchstake:'Torch stake planted',smoke:'Smoke pot set'}[kind]||'Placed');
+ return true;}
+function spawnPlaceable(kind,x,z,dir,owner,o={}){const p={id:o.id??placeId++,kind,x,z,dir,owner,armed:kind==='beartrap',fuse:kind==='dynamite'?(o.fuse??3):kind==='smoke'?(o.fuse??8):0,hp:kind==='fence'?40:kind==='torchstake'?20:15,spent:false,age:0,m:null,light:null};
+ if(!simMode){p.m=placeMesh(kind);p.m.position.set(x,H(x,z),z);p.m.rotation.y=dir;scene.add(p.m);
+  if(kind==='torchstake'){p.light=new THREE.PointLight(0xffb060,0,12,2);p.light.position.set(x,H(x,z)+1.5,z);scene.add(p.light);}}
+ placeables.push(p);return p;}
+function removePlaceable(p){if(p.m)scene.remove(p.m);if(p.light)scene.remove(p.light);const i=placeables.indexOf(p);if(i>=0)placeables.splice(i,1);}
+function explodeAt(x,z,owner,r=5.5,dmg=55){if(!simMode){tone(80,.25,'sawtooth',.2,40);tone(200,.15,'square',.12,60);}
+ for(const e of ents){if(!e.alive||e.ghost||e.isDummy)continue;const d=Math.hypot(e.x-x,e.z-z);if(d>r)continue;
+  const falloff=1-d/r;const dd=dmg*falloff*(e===owner?.35:1);e.hp-=dd*(e.isHuman?.7:1);e.flash=.35;e.stunT=Math.max(e.stunT||0,.6*falloff);
+  const l=d||1;e.x+=(e.x-x)/l*1.2*falloff;e.z+=(e.z-z)/l*1.2*falloff;collide(e);
+  if(e.hp<=0)kill(e,owner||'explosion');}
+ for(const a of animals){if(!a.alive)continue;const d=Math.hypot(a.x-x,a.z-z);if(d>r)continue;hitAnimal(a,dmg*(1-d/r),owner||a);}
+ for(const p of placeables.slice()){if(p.kind==='fence'||p.kind==='torchstake'){const d=Math.hypot(p.x-x,p.z-z);if(d<r*.85){p.hp-=40;if(p.hp<=0)removePlaceable(p);}}}}
+function placeablesStep(dt){if(NET.role==='client'){for(const p of placeables){if(p.kind==='torchstake'&&p.light)p.light.intensity=(isNight()?8:2.2)*(.9+Math.random()*.1);}return;}
+ for(const p of placeables.slice()){p.age=(p.age||0)+dt;
+  if(p.kind==='torchstake'&&p.light)p.light.intensity=(isNight()?8:2.2)*(.9+Math.random()*.1);
+  if(p.kind==='dynamite'&&!p.spent){p.fuse-=dt;if(p.m)p.m.rotation.y+=dt*4;if(p.fuse<=0){p.spent=true;explodeAt(p.x,p.z,p.owner);removePlaceable(p);}continue;}
+  if(p.kind==='smoke'&&!p.spent){p.fuse=(p.fuse||8)-dt;p.smokeR=3.8;if(p.fuse<=0){removePlaceable(p);continue;}
+   for(const e of ents){if(!e.alive||e===p.owner)continue;if(Math.hypot(e.x-p.x,e.z-p.z)<p.smokeR){e.smokeBlind=Math.max(e.smokeBlind||0,1.2);}}}
+  if(p.kind==='beartrap'&&p.armed){
+   const trySnap=(t,isAn)=>{const d=Math.hypot(t.x-p.x,t.z-p.z);if(d>.55)return false;p.armed=false;p.spent=true;
+    if(p.m){p.m.scale.y=.4;p.m.position.y=H(p.x,p.z);}
+    if(isAn){hitAnimal(t,28,p.owner||t);t.stunT=1.6;t.state='hurt';}else{t.hp-=22*(t.isHuman?.65:1);t.flash=.3;t.stunT=Math.max(t.stunT||0,1.8);if(t.hp<=0)kill(t,p.owner||'a bear trap');}
+    if(p.owner&&p.owner.isHuman)say(p.owner,'Bear trap snapped!');if(!simMode)tone(140,.12,'square',.15,80);
+    setTimeout(()=>removePlaceable(p),8000);return true;};
+   for(const e of ents){if(!e.alive||e.ghost||e.isDummy)continue;if(p.owner&&(e===p.owner||(p.owner.ally&&e.ally===p.owner.ally)))continue;if(trySnap(e,false))break;}
+   if(p.armed)for(const a of animals){if(a.alive&&trySnap(a,true))break;}}
+  if(p.kind==='caltrop'&&!p.spent){
+   for(const e of ents){if(!e.alive||e.ghost||e.isDummy||e===p.owner)continue;if(Math.hypot(e.x-p.x,e.z-p.z)<.7){e.hp-=6;e.flash=.15;e.caltropSlow=Math.max(e.caltropSlow||0,2.5);p.spent=true;removePlaceable(p);break;}}
+   if(!p.spent)for(const a of animals){if(!a.alive)continue;if(Math.hypot(a.x-p.x,a.z-p.z)<.7){hitAnimal(a,10,p.owner||a);a.caltropSlow=2;removePlaceable(p);break;}}}
+ }}
+// slow from caltrops / fences in move
+const _move=move;
+// patched below via string replace of move body — fence push in collideExtra
+function placeableBlock(e,nx,nz){ // returns true if blocked
+ for(const p of placeables){if(p.kind!=='fence'&&p.kind!=='gate')continue;const dx=nx-p.x,dz=nz-p.z;const localX=dx*Math.cos(p.dir)+dz*Math.sin(p.dir),localZ=-dx*Math.sin(p.dir)+dz*Math.cos(p.dir);
+  if(Math.abs(localX)<.95&&Math.abs(localZ)<.35&&(e.y||0)<H(p.x,p.z)+1.1)return true;}
+ return false;}
+function craftAndPlace(e,kind){if(!canCraftKind(e,kind))return say(e,'Missing materials or at limit');
+ if(kind==='char'){const c=myCampNear(e,4.5);if(!c||!c.lit)return say(e,'Need a lit campfire to burn charcoal');}
+ const need=recipeFor(kind,e);if(need.knife){if(!(e.weapon==='knife'||e.weapon==='throwknife'||e.weapon==='spknife'))return say(e,'Need a knife (or scrap) for the jaws');
+  need.knifeUsed=e.weapon;if(e.weapon==='throwknife'&&(e.ammo|0)>0){e.ammo--;}else{e.weapon='fists';e.ammo=0;if(e.isPlayer)setWeaponModel();else if(!simMode)giveWeaponMesh(e.fig,null);}delete need.knife;}
+ if(!takeMat(e,need))return say(e,'Missing materials');
+ if(kind==='poison'){e.poisonCoat=5;return say(e,'☠ Blades poisoned (5 hits)');}
+ if(kind==='char'){e.charcoal=Math.min(8,(e.charcoal||0)+1);return say(e,`Burned charcoal (⬛ ${e.charcoal})`);}
+ if(kind==='gate'){const c=myCampNear(e,4.5);if(!c){refundMat(e,need);return say(e,'Need camp');}c.gate=true;campSet(c);return say(e,'Reinforced gate added to camp');}
+ if(kind==='barrel'){const c=myCampNear(e,4.5);if(!c){refundMat(e,need);return say(e,'Need camp');}c.barrel=true;if(!c.collector){c.collector=true;c.collectorT=time+20;}campSet(c);return say(e,'Water barrel installed — better water yield');}
+ startPlaceMode(e,kind,need);return true;}
+function placeSnap(){return placeables.filter(p=>!p.spent||p.kind==='beartrap').map(p=>[p.id,p.kind,q(p.x),q(p.z),q(p.dir,10),ents.indexOf(p.owner),p.armed?1:0,+(p.fuse||0).toFixed(1),p.hp|0]);}
+function clientPlaceables(arr){const seen=new Set();for(const row of arr){const [id,kind,x,z,dir,oi,armed,fuse,hp]=row;seen.add(id);let p=placeables.find(k=>k.id===id);
+  if(!p){p=spawnPlaceable(kind,x,z,dir,ents[oi]||null,{id,fuse});}p.x=x;p.z=z;p.dir=dir;p.armed=!!armed;p.fuse=fuse;p.hp=hp;p.owner=ents[oi]||p.owner;
+  if(p.m){p.m.position.set(x,H(x,z),z);p.m.rotation.y=dir;}if(p.light)p.light.position.set(x,H(x,z)+1.5,z);}
+ for(let i=placeables.length-1;i>=0;i--)if(!seen.has(placeables[i].id))removePlaceable(placeables[i]);}
+
 // UI
 let campCraftView=false;
 function campOptions(){const e=player;if(!e||!e.alive)return [];const c=myCampNear(e,4.5),o=[];const w=e.wood||0,m=e.meat||0;
@@ -1593,29 +1739,42 @@ function campOptions(){const e=player;if(!e||!e.alive)return [];const c=myCampNe
  o.push(['build',(e.camp?'⛺ Move camp here':'⛺ Build camp')+` (${w}/${WOOD_COST} wood)`,w>=WOOD_COST]);
  if(m>0)o.push(['raw',`Eat raw meat (${m})`,true]);if((e.jerky||0)>0)o.push(['jerky',`Eat jerky (${e.jerky})`,true]);
  if(c)o.push(['craft','🛠 Craft…',true]);return o;}
-function craftOptions(){const e=player;if(!e||!e.alive)return [];const c=myCampNear(e,4.5),o=[];const w=e.wood||0,m=e.meat||0,cl=e.cloth||0;
- o.push(['torch',`🔥 Torch (2 wood)`,w>=2]);
+function craftOptions(){const e=player;if(!e||!e.alive)return [];const c=myCampNear(e,4.5),o=[];const w=e.wood||0,m=e.meat||0,cl=e.cloth||0,sc=e.scrap||0,ch=e.charcoal||0,rs=e.resin||0;
+ o.push(['torch',`🔥 Hand torch (2 wood)`,w>=2]);
  o.push(['bandage',cl>0?`🩹 Bandage (1 cloth)`:`🩹 Bandage (2 wood)`,cl>0||w>=2]);
  o.push(['spear',`🗡️ Spear (3 wood)`,w>=3]);
  o.push(['arrows',`🏹 Arrows (2 wood)`,w>=2]);
+ o.push(['char',`⬛ Burn charcoal (1 wood)`,w>=1&&!!c&&c.lit]);
+ // placeables
+ o.push(['beartrap',`🐻 Bear trap (${costLabel('beartrap',e)}) · ${countPlace(e,'beartrap')}/${PLACE_LIMITS.beartrap}`,canCraftKind(e,'beartrap')]);
+ o.push(['fence',`🚧 Spike fence (${costLabel('fence',e)}) · ${countPlace(e,'fence')}/${PLACE_LIMITS.fence}`,canCraftKind(e,'fence')]);
+ o.push(['caltrop',`✴ Caltrops (${costLabel('caltrop',e)})`,canCraftKind(e,'caltrop')]);
+ o.push(['torchstake',`🔥 Torch stake (${costLabel('torchstake',e)})`,canCraftKind(e,'torchstake')]);
+ o.push(['smoke',`💨 Smoke bomb (${costLabel('smoke',e)})`,canCraftKind(e,'smoke')]);
+ o.push(['dynamite',`💥 Dynamite (${costLabel('dynamite',e)}) · rare`,canCraftKind(e,'dynamite')]);
+ o.push(['poison',`☠ Poison tip (${costLabel('poison',e)})`,canCraftKind(e,'poison')]);
  if(c){if(!c.snare)o.push(['snare','🪤 Snare (1 wood)',w>=1]);
   if(!c.rack)o.push(['rack','🥩 Drying rack (3 wood)',w>=3]);
   if(!c.collector)o.push(['collector',arenaId==='tundra'?'❄ Snow melt (2 wood)':'🌧 Rain collector (2 wood)',w>=2]);
+  if(!c.barrel)o.push(['barrel',`💧 Water barrel (${costLabel('barrel',e)})`,canCraftKind(e,'barrel')]);
   if(!c.leanUp)o.push(['lean','⛺ Upgrade lean-to (4 wood)',w>=4]);
+  if(!c.gate)o.push(['gate',`🚪 Reinforced gate (${costLabel('gate',e)})`,canCraftKind(e,'gate')]);
   if(!c.alarm)o.push(['alarm','🔔 Tripwire alarm (2 wood)',w>=2]);
   if(!c.decoy)o.push(['decoy','Scarecrow decoy (2 wood + 1 meat)',w>=2&&m>=1]);}
- else o.push(['hint','(Build/stand at camp for more crafts)',false]);
+ else o.push(['hint','(Stand at camp for upgrades: barrel, gate, snare…)',false]);
  return o;}
 function toggleCampMenu(force){const el=$('campMenu');const show=force!==undefined?force:el.classList.contains('hidden');if(!show){el.classList.add('hidden');campCraftView=false;return;}
  if(document.pointerLockElement)document.exitPointerLock();
  const e=player,w=e?e.wood||0:0,m=e?e.meat||0:0,j=e?e.jerky||0:0,cl=e?e.cloth||0:0;
- if(campCraftView){el.innerHTML=`<div class="ch">Craft</div><div class="cs">🪵 ${w} · 🍖 ${m}`+(j?` · 🥩 ${j}`:'')+(cl?` · 🩹 ${cl}`:'')+`</div>`+craftOptions().map(([k,t,en])=>`<button data-a="${k}" class="${en?'craft':''}${en?'':' off'}" ${en?'':'disabled'}>${t}</button>`).join('')+`<button data-a="campback">← Back</button>`;}
+ if(campCraftView){const sc=e.scrap||0,ch=e.charcoal||0,rs=e.resin||0;el.innerHTML=`<div class="ch">Craft</div><div class="cs">🪵 ${w} · 🍖 ${m}`+(j?` · 🥩 ${j}`:'')+(cl?` · 🩹 ${cl}`:'')+(sc?` · ⚙ ${sc}`:'')+(ch?` · ⬛ ${ch}`:'')+(rs?` · 🟤 ${rs}`:'')+`</div>`+craftOptions().map(([k,t,en])=>`<button data-a="${k}" class="${en?'craft':''}${en?'':' off'}" ${en?'':'disabled'}>${t}</button>`).join('')+`<button data-a="campback">← Back</button>`;}
  else{el.innerHTML=`<div class="ch">Camp</div><div class="cs">🪵 ${w} · 🍖 ${m}`+(j?` · 🥩 ${j}`:'')+`</div>`+campOptions().map(([k,t,en])=>`<button data-a="${k}" ${en?'':'class="off"'} ${en?'':'disabled'}>${t}</button>`).join('')+`<button data-a="close">✕ Close</button>`;}
  el.classList.remove('hidden');}
+const PLACE_CRAFTS=new Set(['beartrap','fence','dynamite','smoke','caltrop','torchstake','gate','barrel','poison','char']);
 function cmdCamp(a){if(a==='close'){campCraftView=false;return toggleCampMenu(false);}
  if(a==='craft'){campCraftView=true;return toggleCampMenu(true);}
  if(a==='campback'||a==='hint'){campCraftView=false;return toggleCampMenu(true);}
  const stay=campCraftView;toggleCampMenu(false);campCraftView=false;
+ if(PLACE_CRAFTS.has(a)){if(NET.role==='client'){netSend(NET.conn,{t:'camp',a});return;}craftAndPlace(player,a);return;}
  if(NET.role==='client'){netSend(NET.conn,{t:'camp',a});if(a==='rest')$('sleepOv').classList.remove('hidden');return;}
  campAction(player,a);if(stay&&a!=='rest'){campCraftView=true;toggleCampMenu(true);}}
 $('campMenu').addEventListener('click',ev=>{const b=ev.target.closest('button');if(b)cmdCamp(b.dataset.a);});
@@ -1624,14 +1783,14 @@ for(const ev of ['touchstart','mousedown']){const ab=$('aidBtn');if(ab)ab.addEve
 addEventListener('keydown',e=>{if(!running||simMode)return;if(e.code==='KeyG')requestAid();});
 $('sleepOv').addEventListener('click',()=>{if(NET.role==='client'){netSend(NET.conn,{t:'camp',a:'wake'});$('sleepOv').classList.add('hidden');}else if(player)wakeUp(player,'');});
 addEventListener('keydown',e=>{if(!running||simMode)return;if(e.code==='KeyC')toggleCampMenu();});
-function campFlags(c){return (c.rack?1:0)|(c.collector?2:0)|(c.leanUp?4:0)|(c.alarm?8:0)|(c.decoy?16:0);}
-function applyCampFlags(c,f){c.rack=!!(f&1);c.collector=!!(f&2);c.leanUp=!!(f&4);c.alarm=!!(f&8);c.decoy=!!(f&16);}
+function campFlags(c){return (c.rack?1:0)|(c.collector?2:0)|(c.leanUp?4:0)|(c.alarm?8:0)|(c.decoy?16:0)|(c.gate?32:0)|(c.barrel?64:0);}
+function applyCampFlags(c,f){c.rack=!!(f&1);c.collector=!!(f&2);c.leanUp=!!(f&4);c.alarm=!!(f&8);c.decoy=!!(f&16);c.gate=!!(f&32);c.barrel=!!(f&64);}
 function campSnap(){return camps.map(c=>[c.id,ents.indexOf(c.owner),q(c.x),q(c.z),q(c.dir,10),c.lit?1:0,c.snare?1:0,campFlags(c),c.rackMeat|0]);}
-function clientCamps(arr){const seen=new Set();for(const row of arr){const [id,oi,x,z,dir,lit,sn,fl=0,rm=0]=row;seen.add(id);let c=camps.find(k=>k.id===id);const owner=ents[oi]||null;if(!c){if(owner)removeCamp(owner);c={id,owner,x,z,dir,lit:!!lit,snare:!!sn,rack:false,rackMeat:0,rackT:0,collector:false,collectorT:0,leanUp:false,alarm:false,alarmLast:0,decoy:false,fig:campMesh()};c.fig.position.set(x,H(x,z),z);c.fig.rotation.y=dir;scene.add(c.fig);camps.push(c);if(owner)owner.camp=c;}c.lit=!!lit;c.snare=!!sn;c.rackMeat=rm|0;applyCampFlags(c,fl|0);campSet(c);}
+function clientCamps(arr){const seen=new Set();for(const row of arr){const [id,oi,x,z,dir,lit,sn,fl=0,rm=0]=row;seen.add(id);let c=camps.find(k=>k.id===id);const owner=ents[oi]||null;if(!c){if(owner)removeCamp(owner);c={id,owner,x,z,dir,lit:!!lit,snare:!!sn,rack:false,rackMeat:0,rackT:0,collector:false,collectorT:0,leanUp:false,alarm:false,alarmLast:0,decoy:false,gate:false,barrel:false,fig:campMesh()};c.fig.position.set(x,H(x,z),z);c.fig.rotation.y=dir;scene.add(c.fig);camps.push(c);if(owner)owner.camp=c;}c.lit=!!lit;c.snare=!!sn;c.rackMeat=rm|0;applyCampFlags(c,fl|0);campSet(c);}
  for(let i=camps.length-1;i>=0;i--)if(!seen.has(camps[i].id)){const c=camps[i];if(c.fig)scene.remove(c.fig);if(c.owner&&c.owner.camp===c)c.owner.camp=null;camps.splice(i,1);}}
-Object.assign(window.__game,{camps:()=>camps.map(c=>({id:c.id,owner:c.owner&&c.owner.name,x:+c.x.toFixed(1),z:+c.z.toFixed(1),lit:c.lit,snare:c.snare,rack:!!c.rack,collector:!!c.collector,leanUp:!!c.leanUp,alarm:!!c.alarm,decoy:!!c.decoy,rackMeat:c.rackMeat|0})),campAction:a=>campAction(player,a),campOptions,craftOptions,toggleCampMenu,
- setTime:t=>{time=t;},inv:()=>({wood:player.wood||0,meat:player.meat||0,jerky:player.jerky||0,cloth:player.cloth||0,torch:!!(player&&(player.torchUntil||0)>time),sleeping:!!player.sleeping,hp:Math.round(player.hp),hunger:Math.round(player.hunger)}),
- setInv:(o)=>{if(!player)return;if(o.wood!=null)player.wood=o.wood;if(o.meat!=null)player.meat=o.meat;if(o.jerky!=null)player.jerky=o.jerky;if(o.cloth!=null)player.cloth=o.cloth;},
+Object.assign(window.__game,{camps:()=>camps.map(c=>({id:c.id,owner:c.owner&&c.owner.name,x:+c.x.toFixed(1),z:+c.z.toFixed(1),lit:c.lit,snare:c.snare,rack:!!c.rack,collector:!!c.collector,leanUp:!!c.leanUp,alarm:!!c.alarm,decoy:!!c.decoy,rackMeat:c.rackMeat|0})),campAction:a=>campAction(player,a),campOptions,craftOptions,toggleCampMenu,craftAndPlace:(k)=>craftAndPlace(player,k),placeables:()=>placeables.map(p=>({id:p.id,kind:p.kind,x:+p.x.toFixed(1),z:+p.z.toFixed(1),armed:!!p.armed,fuse:+(p.fuse||0).toFixed(1),owner:p.owner&&p.owner.name})),placeMode:()=>placeMode&&{kind:placeMode.kind,x:placeMode.x,z:placeMode.z},confirmPlace,cancelPlaceMode,startPlaceMode:(k)=>{const need=recipeFor(k,player);if(!need||!takeMat(player,need))return false;startPlaceMode(player,k,need);return true;},
+ setTime:t=>{time=t;},inv:()=>({wood:player.wood||0,meat:player.meat||0,jerky:player.jerky||0,cloth:player.cloth||0,scrap:player.scrap||0,charcoal:player.charcoal||0,resin:player.resin||0,poison:player.poisonCoat||0,torch:!!(player&&(player.torchUntil||0)>time),sleeping:!!player.sleeping,hp:Math.round(player.hp),hunger:Math.round(player.hunger)}),
+ setInv:(o)=>{if(!player)return;if(o.wood!=null)player.wood=o.wood;if(o.meat!=null)player.meat=o.meat;if(o.jerky!=null)player.jerky=o.jerky;if(o.cloth!=null)player.cloth=o.cloth;if(o.scrap!=null)player.scrap=o.scrap;if(o.charcoal!=null)player.charcoal=o.charcoal;if(o.resin!=null)player.resin=o.resin;},
  forceAlly:()=>{const e=ents.find(x=>x.alive&&!x.isPlayer&&!x.isDummy&&x.pers==='spar'&&(!x.ally||x.ally!==player.ally))||ents.find(x=>x.alive&&!x.isPlayer&&!x.isDummy&&(!x.ally||x.ally!==player.ally));if(!e)return null;joinTeam(e,player);updateAllyUI(true);return e.name;}});
 Object.assign(window.__game,{sticks:()=>{let b=null,bd=1e9;for(const it of items)if(it.type==='sticks'){const d=Math.hypot(it.x-player.x,it.z-player.z);if(d<bd){bd=d;b=it;}}return b&&{x:b.x,z:b.z};},killFar:()=>{for(const e of ents)if(!e.isPlayer&&Math.hypot(e.x-player.x,e.z-player.z)<40){e.x+=80;e.z+=80;}}});
 window.__game.dbgA=()=>animals.map(a=>{const bb=new THREE.Box3().setFromObject(a.fig,true);return [a.kind,a.fig.visible,a.fig.parent===scene,bb.min.toArray().map(v=>+v.toFixed(1)),bb.max.toArray().map(v=>+v.toFixed(1)),a.K.model?+MODELS[a.K.model].h.toFixed(2):0]});
