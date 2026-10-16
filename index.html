@@ -55,10 +55,19 @@ button.big{font-size:20px;padding:12px 28px;margin:6px;border:0;border-radius:10
 #campBtn{position:fixed;left:max(30px,env(safe-area-inset-left));bottom:calc(max(24px,env(safe-area-inset-bottom)) + 224px);z-index:7;padding:11px 15px;border-radius:24px;background:#7a4a1fd0;border:2px solid #fb6;font-weight:bold;font-size:15px;touch-action:none;cursor:pointer;color:#fff}
 #aidBtn{position:fixed;left:max(30px,env(safe-area-inset-left));bottom:calc(max(24px,env(safe-area-inset-bottom)) + 280px);z-index:7;padding:10px 14px;border-radius:24px;background:#4a5568d0;border:2px solid #c0c8d8;font-weight:bold;font-size:13px;touch-action:none;cursor:pointer;color:#eef;display:none}
 #aidBtn:active{background:#6a7a90}
-#campMenu{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(max(24px,env(safe-area-inset-bottom)) + 120px);z-index:9;background:#000d;border:2px solid #fb6;border-radius:12px;padding:10px;display:flex;flex-direction:column;gap:5px;min-width:min(260px,88vw);max-width:92vw;max-height:min(62vh,480px);overflow-y:auto;-webkit-overflow-scrolling:touch;touch-action:pan-y}
-#campMenu .ch{font-weight:bold;color:#fb6;text-align:center}#campMenu .cs{font-size:11px;opacity:.75;text-align:center;margin:2px 0 4px}#campMenu .sec{font-size:10px;letter-spacing:.08em;text-transform:uppercase;opacity:.55;margin:6px 0 2px;text-align:center}
-#campMenu button{padding:10px 12px;border-radius:8px;border:0;background:#f5b942;font-weight:bold;font-size:14px;touch-action:manipulation}#campMenu button.off{opacity:.4;pointer-events:none}#campMenu button[data-a=close],#campMenu button[data-a=campback]{background:#555;color:#fff}
+#campMenu{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(max(16px,env(safe-area-inset-bottom)) + 88px);z-index:12;background:#000e;border:2px solid #fb6;border-radius:14px;padding:0;display:flex;flex-direction:column;min-width:min(280px,90vw);width:min(320px,92vw);max-width:94vw;max-height:min(68vh,calc(100dvh - 140px));overflow:hidden;touch-action:none;overscroll-behavior:contain;box-shadow:0 8px 28px #000a}
+#campMenu .campHead{flex:0 0 auto;padding:10px 12px 6px;text-align:center;border-bottom:1px solid #fb64}
+#campMenu .ch{font-weight:bold;color:#fb6;text-align:center;font-size:15px}#campMenu .cs{font-size:11px;opacity:.8;text-align:center;margin:4px 0 2px;line-height:1.35}#campMenu .sec{font-size:10px;letter-spacing:.08em;text-transform:uppercase;opacity:.55;margin:6px 0 2px;text-align:center}
+#campMenu .campScroll{flex:1 1 auto;min-height:0;overflow-x:hidden;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;touch-action:pan-y;padding:8px 10px 4px;display:flex;flex-direction:column;gap:5px;scrollbar-width:thin;scrollbar-color:#fb6a #0006}
+#campMenu .campScroll::-webkit-scrollbar{width:8px}
+#campMenu .campScroll::-webkit-scrollbar-track{background:#0006;border-radius:4px}
+#campMenu .campScroll::-webkit-scrollbar-thumb{background:#c9a227;border-radius:4px;border:2px solid #0006}
+#campMenu .campFoot{flex:0 0 auto;padding:6px 10px 10px;border-top:1px solid #fb64;background:#000e}
+#campMenu .campFade{pointer-events:none;position:absolute;left:2px;right:10px;bottom:52px;height:32px;background:linear-gradient(transparent,#000e 85%);opacity:0;transition:opacity .15s;z-index:1}
+#campMenu.hasMore .campFade{opacity:1}
+#campMenu button{padding:11px 12px;border-radius:8px;border:0;background:#f5b942;font-weight:bold;font-size:14px;touch-action:pan-y manipulation;flex-shrink:0;width:100%}#campMenu button.off{opacity:.4;pointer-events:none}#campMenu button[data-a=close],#campMenu button[data-a=campback]{background:#555;color:#fff}
 #campMenu button.craft{background:#3a5a2a;color:#e8f5d8;border:1px solid #6a8}
+#campMenu .campHint{font-size:10px;opacity:.55;text-align:center;margin:2px 0 0}
 #sleepOv{position:fixed;inset:0;z-index:6;background:radial-gradient(#0008,#000e);display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:30px;font-weight:bold;color:#cde}#sleepOv small{font-size:15px;opacity:.8;margin-top:8px}
 #inv{font-size:14px;margin-top:2px}
 #allyBtn{position:fixed;left:max(30px,env(safe-area-inset-left));bottom:calc(max(24px,env(safe-area-inset-bottom)) + 168px);z-index:7;padding:12px 16px;border-radius:24px;background:#1f7a35d0;border:2px solid #8f8;font-weight:bold;font-size:15px;touch-action:none;cursor:pointer}

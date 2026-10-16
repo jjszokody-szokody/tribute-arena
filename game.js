@@ -1763,12 +1763,25 @@ function craftOptions(){const e=player;if(!e||!e.alive)return [];const c=myCampN
   if(!c.decoy)o.push(['decoy','Scarecrow decoy (2 wood + 1 meat)',w>=2&&m>=1]);}
  else o.push(['hint','(Stand at camp for upgrades: barrel, gate, snare…)',false]);
  return o;}
-function toggleCampMenu(force){const el=$('campMenu');const show=force!==undefined?force:el.classList.contains('hidden');if(!show){el.classList.add('hidden');campCraftView=false;return;}
+function campMenuScrollHint(el){const sc=el&&el.querySelector('.campScroll');if(!sc){el&&el.classList.remove('hasMore');return;}
+ const more=sc.scrollHeight>sc.clientHeight+4&&sc.scrollTop+sc.clientHeight<sc.scrollHeight-8;el.classList.toggle('hasMore',more);}
+function bindCampScroll(el){const sc=el.querySelector('.campScroll');if(!sc||sc._bound)return;sc._bound=1;
+ const sync=()=>campMenuScrollHint(el);sc.addEventListener('scroll',sync,{passive:true});
+ sc.addEventListener('wheel',ev=>{ev.stopPropagation();},{passive:true});
+ sc.addEventListener('touchmove',ev=>{ev.stopPropagation();},{passive:true});
+ // prevent drag on buttons from stealing vertical scroll: allow pan-y on list
+ requestAnimationFrame(sync);setTimeout(sync,50);}
+function toggleCampMenu(force){const el=$('campMenu');const show=force!==undefined?force:el.classList.contains('hidden');if(!show){el.classList.add('hidden');el.classList.remove('hasMore','craftMode');campCraftView=false;return;}
  if(document.pointerLockElement)document.exitPointerLock();
  const e=player,w=e?e.wood||0:0,m=e?e.meat||0:0,j=e?e.jerky||0:0,cl=e?e.cloth||0:0;
- if(campCraftView){const sc=e.scrap||0,ch=e.charcoal||0,rs=e.resin||0;el.innerHTML=`<div class="ch">Craft</div><div class="cs">🪵 ${w} · 🍖 ${m}`+(j?` · 🥩 ${j}`:'')+(cl?` · 🩹 ${cl}`:'')+(sc?` · ⚙ ${sc}`:'')+(ch?` · ⬛ ${ch}`:'')+(rs?` · 🟤 ${rs}`:'')+`</div>`+craftOptions().map(([k,t,en])=>`<button data-a="${k}" class="${en?'craft':''}${en?'':' off'}" ${en?'':'disabled'}>${t}</button>`).join('')+`<button data-a="campback">← Back</button>`;}
- else{el.innerHTML=`<div class="ch">Camp</div><div class="cs">🪵 ${w} · 🍖 ${m}`+(j?` · 🥩 ${j}`:'')+`</div>`+campOptions().map(([k,t,en])=>`<button data-a="${k}" ${en?'':'class="off"'} ${en?'':'disabled'}>${t}</button>`).join('')+`<button data-a="close">✕ Close</button>`;}
- el.classList.remove('hidden');}
+ if(campCraftView){const sc=e.scrap||0,ch=e.charcoal||0,rs=e.resin||0;
+  const rows=craftOptions().map(([k,t,en])=>`<button data-a="${k}" class="${en?'craft':''}${en?'':' off'}" ${en?'':'disabled'}>${t}</button>`).join('');
+  el.innerHTML=`<div class="campHead"><div class="ch">Craft</div><div class="cs">🪵 ${w} · 🍖 ${m}`+(j?` · 🥩 ${j}`:'')+(cl?` · 🩹 ${cl}`:'')+(sc?` · ⚙ ${sc}`:'')+(ch?` · ⬛ ${ch}`:'')+(rs?` · 🟤 ${rs}`:'')+`</div><div class="campHint">Scroll for more recipes</div></div><div class="campScroll">${rows}</div><div class="campFade"></div><div class="campFoot"><button data-a="campback">← Back</button></div>`;
+  el.classList.add('craftMode');}
+ else{const rows=campOptions().map(([k,t,en])=>`<button data-a="${k}" ${en?'':'class="off"'} ${en?'':'disabled'}>${t}</button>`).join('');
+  el.innerHTML=`<div class="campHead"><div class="ch">Camp</div><div class="cs">🪵 ${w} · 🍖 ${m}`+(j?` · 🥩 ${j}`:'')+`</div></div><div class="campScroll">${rows}</div><div class="campFade"></div><div class="campFoot"><button data-a="close">✕ Close</button></div>`;
+  el.classList.remove('craftMode');}
+ el.classList.remove('hidden');bindCampScroll(el);campMenuScrollHint(el);}
 const PLACE_CRAFTS=new Set(['beartrap','fence','dynamite','smoke','caltrop','torchstake','gate','barrel','poison','char']);
 function cmdCamp(a){if(a==='close'){campCraftView=false;return toggleCampMenu(false);}
  if(a==='craft'){campCraftView=true;return toggleCampMenu(true);}
@@ -1778,6 +1791,8 @@ function cmdCamp(a){if(a==='close'){campCraftView=false;return toggleCampMenu(fa
  if(NET.role==='client'){netSend(NET.conn,{t:'camp',a});if(a==='rest')$('sleepOv').classList.remove('hidden');return;}
  campAction(player,a);if(stay&&a!=='rest'){campCraftView=true;toggleCampMenu(true);}}
 $('campMenu').addEventListener('click',ev=>{const b=ev.target.closest('button');if(b)cmdCamp(b.dataset.a);});
+$('campMenu').addEventListener('wheel',ev=>{ev.stopPropagation();},{passive:true});
+$('campMenu').addEventListener('touchmove',ev=>{ev.stopPropagation();},{passive:false});
 for(const ev of ['touchstart','mousedown'])$('campBtn').addEventListener(ev,e=>{e.preventDefault();e.stopPropagation();audio();toggleCampMenu();},{passive:false});
 for(const ev of ['touchstart','mousedown']){const ab=$('aidBtn');if(ab)ab.addEventListener(ev,e=>{e.preventDefault();e.stopPropagation();audio();requestAid();},{passive:false});}
 addEventListener('keydown',e=>{if(!running||simMode)return;if(e.code==='KeyG')requestAid();});
